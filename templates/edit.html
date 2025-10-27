@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+
+{% block title %}Modifier {{ movie.title }}{% endblock %}
+
+{% block content %}
+<div class="add-movie">
+    <h1>Modifier le film</h1>
+    <form method="POST">
+        <input type="text" name="imdb_url" placeholder="Lien IMDb du film" value="{{ movie.url }}" required>
+        <input type="text" name="film_url" placeholder="Lien du film" value="{{ movie.movie_url }}" required>
+        <button type="submit">Enregistrer</button>
+    </form>
+
+    <p><a href="{{ url_for('add_movie') }}">⬅ Retour à l'ajout</a></p>
+</div>
+{% endblock %}
