@@ -3,22 +3,21 @@ import requests
 from bs4 import BeautifulSoup
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import json
 import os
 
 app = Flask(__name__)
 
-SHEET_NAME = "mimatflix"  # Nom de ta feuille Google
-# Lire les credentials depuis l'env variable
-creds_json = os.environ.get("GOOGLE_CREDS")
-if not creds_json:
-    raise Exception("Variable d'environnement GOOGLE_CREDS non définie !")
+# --- Google Sheets setup ---
+# Mets ton fichier service_account.json dans le même dossier que app.py
+SERVICE_ACCOUNT_FILE = "service_account.json"
 
-creds_dict = json.loads(creds_json)
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
 client = gspread.authorize(creds)
-sheet = client.open(SHEET_NAME).sheet1  # première feuille
+
+# Nom de la feuille Google
+SHEET_NAME = "Movies"
+sheet = client.open(SHEET_NAME).sheet1
 
 # --- Fonctions utilitaires Google Sheets ---
 def load_data():
