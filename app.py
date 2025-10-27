@@ -1,66 +1,50 @@
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for, abort
 import requests
 from bs4 import BeautifulSoup
-import gspread
-from oauth2client.service_account import ServiceAccountCredentials
-import os
+from db import load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id
+
+
 
 app = Flask(__name__)
 
-# --- Google Sheets setup ---
-# Mets ton fichier service_account.json dans le même dossier que app.py
-SERVICE_ACCOUNT_FILE = "service_account.json"
-
-scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
-creds = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
-client = gspread.authorize(creds)
-
-# Nom de la feuille Google
-SHEET_NAME = "Movies"
-sheet = client.open(SHEET_NAME).sheet1
-
-# --- Fonctions utilitaires Google Sheets ---
-def load_data():
-    records = sheet.get_all_records()
-    return records
-
-def save_movie(movie):
-    sheet.append_row([movie["title"], movie["poster"], movie["url"], movie.get("movie_url", "")])
-
-def update_movie(index, movie):
-    row = index + 2  # +1 pour l'en-tête, +1 car gspread commence à 1
-    sheet.update(f"A{row}", movie["title"])
-    sheet.update(f"B{row}", movie["poster"])
-    sheet.update(f"C{row}", movie["url"])
-    sheet.update(f"D{row}", movie.get("movie_url", ""))
-
-def delete_movie_row(index):
-    row = index + 2
-    sheet.delete_row(row)
-
-# --- Scraping IMDb ---
+# --- Scraping IMDb 
 def scrape_imdb(url):
-    headers = {"User-Agent": "Mozilla/5.0"}
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36"}
     res = requests.get(url, headers=headers)
     if res.status_code != 200:
-        raise ValueError("Impossible de charger la page IMDb")
+        raise ValueError(f"Impossible de charger la page IMDb (Status {res.status_code})")
 
     soup = BeautifulSoup(res.text, "html.parser")
 
     # Titre
-    title_tag = soup.find("h1")
+    # IMDb utilise souvent la balise <h1 data-testid="hero-title-block__title">
+    title_tag = soup.find("h1", {"data-testid": "hero-title-block__title"})
+    if not title_tag: # Fallback pour les pages moins récentes
+        title_tag = soup.find("h1")
+
     title = title_tag.text.strip() if title_tag else "Titre inconnu"
 
     # Image
-    img_tag = soup.find("img", {"class": "ipc-image"})
+    
+    img_tag = soup.find("div", {"data-testid": "hero-media__poster"}).find("img") if soup.find("div", {"data-testid": "hero-media__poster"}) else None
+    
+    if not img_tag: # Fallback pour la classe ipc-image ou autre
+        img_tag = soup.find("img", {"class": "ipc-image"})
+
     if img_tag and "src" in img_tag.attrs:
-        img_url = img_tag["src"].replace("_UX128_", "_UX600_")
+        # Tentative de récupérer une meilleure résolution
+        img_url = img_tag["src"].replace("_UX128_", "_UX600_").split("._V1_")[0] + "._V1_.jpg"
     else:
         img_url = ""
 
+    # Ajout d'une vérification minimale pour s'assurer que le scraping a réussi
+    if title == "Titre inconnu" and img_url == "":
+         raise ValueError("Scraping IMDb a échoué. Vérifiez l'URL ou les sélecteurs.")
+
     return {"title": title, "poster": img_url, "url": url}
 
-# --- Routes ---
+
+
 @app.route("/")
 def index():
     movies = load_data()
@@ -68,7 +52,7 @@ def index():
 
 @app.route("/hamidur", methods=["GET", "POST"])
 def add_movie():
-    data = load_data()
+    movies = load_data()
     if request.method == "POST":
         imdb_url = request.form.get("imdb_url")
         movie_url = request.form.get("film_url")
@@ -76,48 +60,51 @@ def add_movie():
             movie = scrape_imdb(imdb_url)
             movie["movie_url"] = movie_url
             save_movie(movie)
+            # Redirige après succès pour éviter la soumission multiple
             return redirect(url_for("add_movie"))
+        except ValueError as e:
+            return render_template("admin.html", movies=movies, error=f"Erreur de scraping/validation: {e}"), 400
         except Exception as e:
-            return f"Erreur lors du traitement : {e}"
-    return render_template("admin.html", movies=data)
+            # Erreur de DB, etc.
+            return render_template("admin.html", movies=movies, error=f"Erreur système: {e}"), 500
 
-@app.route("/edit/<int:index>", methods=["GET", "POST"])
-def edit_movie(index):
-    data = load_data()
-    if index < 0 or index >= len(data):
-        return "Film introuvable", 404
+    return render_template("admin.html", movies=movies)
 
-    movie = data[index]
+@app.route("/edit/<int:id_movie>", methods=["GET", "POST"])
+def edit_movie(id_movie):
+    movie = get_movie_by_id(id_movie)
+    if movie is None:
+        abort(404) # Film introuvable
 
     if request.method == "POST":
         imdb_url = request.form.get("imdb_url")
         movie_url = request.form.get("film_url")
         try:
-            updated_movie = scrape_imdb(imdb_url)
-            updated_movie["movie_url"] = movie_url
-            update_movie(index, updated_movie)
+            # Utiliser scrape_imdb pour potentiellement mettre à jour le titre et l'affiche
+            updated_movie_details = scrape_imdb(imdb_url)
+            updated_movie_details["movie_url"] = movie_url
+
+            update_movie(id_movie, updated_movie_details)
             return redirect(url_for("add_movie"))
+        except ValueError as e:
+            return render_template("edit.html", movie=movie, error=f"Erreur de scraping/validation: {e}"), 400
         except Exception as e:
-            return f"Erreur lors du traitement : {e}"
+            return render_template("edit.html", movie=movie, error=f"Erreur système: {e}"), 500
 
-    return render_template("edit.html", movie=movie, index=index)
+    return render_template("edit.html", movie=movie)
 
-@app.route("/supprimer/<int:index>", methods=["GET"])
-def delete_movie(index):
-    movies = load_data()
-    if index < 0 or index >= len(movies):
-        return "Film introuvable", 404
-    delete_movie_row(index)
+@app.route("/delete/<int:id_movie>", methods=["POST"])
+def delete_movie(id_movie):
+    delete_movie_by_id(id_movie)
     return redirect(url_for("add_movie"))
 
-@app.route("/movie/<int:index>")
-def movie_detail(index):
-    movies = load_data()
-    if index < 0 or index >= len(movies):
-        return "Film introuvable", 404
-    movie = movies[index]
+@app.route("/movie/<int:id_movie>")
+def movie_detail(id_movie):
+    movie = get_movie_by_id(id_movie)
+    if movie is None:
+        abort(404) # Film introuvable
     return render_template("detail.html", movie=movie)
 
-# --- Run Flask ---
+
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(debug=True, host="0.0.0.0", port=5000)

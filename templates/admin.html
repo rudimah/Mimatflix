@@ -16,8 +16,8 @@
         {% for movie in movies %}
             <li>
                 {{ movie.title }}
-                <a href="{{ url_for('edit_movie', index=loop.index0) }}">Modifier</a>
-                <a href="{{ url_for('delete_movie', index=loop.index0) }}">supprimer</a>
+                <a href="{{ url_for('edit_movie', id_movie=movie.id_movie) }}">Modifier</a>
+                <a href="{{ url_for('delete_movie', id_movie=movie.id_movie) }}">supprimer</a>
             </li>
         {% endfor %}
     </ul>

@@ -5,7 +5,7 @@
 {% block content %}
 <div class="movie-container">
     {% for movie in movies %}
-        <div class="movie-card" onclick="location.href='{{ url_for('movie_detail', index=loop.index0) }}'">
+        <div class="movie-card" onclick="location.href='{{ url_for('movie_detail', id_movie=movie.id_movie) }}'">
             {% if movie.poster %}
                 <img src="{{ movie.poster }}" alt="Affiche">
             {% endif %}
