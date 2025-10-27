@@ -55,7 +55,7 @@ def index():
     movies = load_data()
     return render_template("index.html", movies=movies)
 
-@app.route("/admin", methods=["GET", "POST"])
+@app.route("/hamidur", methods=["GET", "POST"])
 def add_movie():
     data = load_data()
     if request.method == "POST":
@@ -66,7 +66,7 @@ def add_movie():
             movie["movie_url"] = movie_url
             data.append(movie)
             save_data(data)
-            return redirect(url_for("index"))
+            return redirect(url_for("add_movie"))
         except Exception as e:
             return f"Erreur lors du traitement : {e}"
     return render_template("admin.html", movies=data)
@@ -96,7 +96,6 @@ def edit_movie(index):
 
 @app.route("/supprimer/<int:index>", methods=["GET"])
 def delete_movie(index):
-    print("khdskjgfhdskjghdfkjgh")
     movies = load_data()
     if index < 0 or index >= len(movies):
         return "Film introuvable", 404

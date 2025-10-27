@@ -3,9 +3,9 @@
 {% block title %}Mimatflix{% endblock %}
 
 {% block content %}
-<div class="carousel">
+<div class="movie-container">
     {% for movie in movies %}
-        <div class="carousel-item" onclick="location.href='{{ url_for('movie_detail', index=loop.index0) }}'">
+        <div class="movie-card" onclick="location.href='{{ url_for('movie_detail', index=loop.index0) }}'">
             {% if movie.poster %}
                 <img src="{{ movie.poster }}" alt="Affiche">
             {% endif %}
