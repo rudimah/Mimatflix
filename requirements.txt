@@ -3,3 +3,5 @@ mysql-connector-python
 requests
 beautifulsoup4
 gunicorn
+boto3
+dotenv

@@ -2,17 +2,137 @@
 
 {% block title %}{{ movie.title }}{% endblock %}
 
+{% block styles %}
+<style>
+    /* --- Layout Desktop (PC) --- */
+    .detail-wrapper {
+        display: grid;
+        grid-template-columns: 300px 1fr; /* Gauche: 300px, Droite: le reste */
+        gap: 40px;
+        align-items: start;
+        margin-top: 20px;
+    }
+
+    /* Section Info (Gauche sur PC, Haut sur Mobile) */
+    .movie-info {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .movie-info h2 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        line-height: 1.1;
+        color: var(--text-main);
+    }
+
+    .poster-wrapper {
+        width: 100%;
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: var(--shadow);
+    }
+
+    .poster-wrapper img {
+        width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    .btn-back {
+        display: block;
+        width: 100%;
+        padding: 12px 0;
+        background: rgba(255,255,255,0.1);
+        border-radius: 4px;
+        font-weight: 600;
+        text-align: center;
+        transition: 0.3s;
+        margin-top: 10px;
+    }
+
+    .btn-back:hover {
+        background: rgba(255,255,255,0.2);
+        color: white;
+    }
+
+    /* Section Vidéo (Droite sur PC, Bas sur Mobile) */
+    .video-container {
+        background: #000;
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+    }
+
+    video {
+        width: 100%;
+        height: auto;
+        max-height: 85vh;
+        display: block;
+        outline: none;
+    }
+
+    /* --- Responsive Mobile & Tablette --- */
+    @media (max-width: 900px) {
+        .detail-wrapper {
+            grid-template-columns: 1fr; /* Une seule colonne */
+            gap: 30px;
+        }
+
+        /* J'ai supprimé les propriétés 'order'.
+           L'affichage suit maintenant l'ordre naturel du HTML :
+           1. .movie-info (Titre + Poster) -> EN HAUT
+           2. .video-container (Vidéo) -> EN BAS
+        */
+
+        .movie-info {
+            text-align: center;
+            align-items: center;
+        }
+
+        .movie-info h2 {
+            font-size: 1.8rem;
+        }
+
+        .poster-wrapper {
+            max-width: 250px; /* Taille raisonnable pour le mobile */
+            margin: 0 auto;
+        }
+        
+        .btn-back {
+            max-width: 250px;
+            margin: 10px auto 0;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="movie-detail">
-    <div class="left">
+<div class="detail-wrapper">
+    
+    <div class="movie-info">
         <h2>{{ movie.title }}</h2>
+        
         {% if movie.poster %}
-            <img src="{{ movie.poster }}" alt="Affiche">
+        <div class="poster-wrapper">
+            <img src="{{ movie.poster }}" alt="Affiche de {{ movie.title }}">
+        </div>
         {% endif %}
-        <p><a href="{{ url_for('index') }}">⬅ Retour à la liste</a></p>
+
+        <a href="{{ url_for('index') }}" class="btn-back">⬅ Retour à la liste</a>
     </div>
-    <div class="right">
-        <iframe src="{{ movie.movie_url }}" allowfullscreen></iframe>
+
+    <div class="video-container">
+        <video controls autoplay>
+            <source src="{{ movie.movie_url }}" type="video/mp4">
+            Votre navigateur ne supporte pas la lecture de vidéos HTML5.
+        </video>
     </div>
+
 </div>
 {% endblock %}

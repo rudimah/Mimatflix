@@ -1,12 +1,13 @@
 import mysql.connector
 from mysql.connector import errorcode
+from dotenv import load_dotenv
+load_dotenv()
 import os
 
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_USER = os.environ.get("DB_USER", "root")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "password")
-DB_DATABASE = os.environ.get("DB_DATABASE", "defaultdb") # Utilise 'defaultdb' comme spécifié
-# Ajout de DB_PORT, par défaut 3306 si non spécifié
+DB_DATABASE = os.environ.get("DB_DATABASE", "defaultdb")
 DB_PORT = int(os.environ.get("DB_PORT", 3306))
 
 def get_db_connection():
@@ -17,7 +18,8 @@ def get_db_connection():
             user=DB_USER,
             password=DB_PASSWORD,
             database=DB_DATABASE,
-            port=DB_PORT # Utilisation du port spécifié
+            port=DB_PORT,
+            ssl_ca="ca.pem" 
         )
         return conn
     except mysql.connector.Error as err:
@@ -99,6 +101,8 @@ def delete_movie_by_id(id_movie):
     """Supprime un film en utilisant son id_movie."""
     conn = get_db_connection()
     if not conn: return
+
+    
 
     cursor = conn.cursor()
     try:

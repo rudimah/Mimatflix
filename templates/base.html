@@ -2,13 +2,69 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>{% block title %}Films{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mimatflix{% endblock %}</title>
     <link rel="icon" href="{{ url_for('static', filename='favicon.jpg') }}" type="image/jpg">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-body: #141414;
+            --bg-card: #1f1f1f;
+            --text-main: #ffffff;
+            --text-muted: #b3b3b3;
+            --primary: #e50914;
+            --primary-hover: #f40612;
+            --shadow: 0 4px 15px rgba(0,0,0,0.5);
+            --radius: 8px;
+            --font-main: 'Inter', sans-serif;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: var(--font-main);
+            line-height: 1.6;
+            padding-top: 80px;
+        }
+
+        a { text-decoration: none; color: inherit; transition: 0.3s; }
+        
+        header {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding: 1rem 5%;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+        }
+
+        header h1 a {
+            color: var(--primary);
+            font-weight: 800;
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        main {
+            max-width: 1600px; /* Plus large pour mieux accueillir la vidéo */
+            margin: 0 auto;
+            padding: 20px 4%;
+            min-height: 80vh;
+        }
+    </style>
+    {% block styles %}{% endblock %}
 </head>
 <body>
     <header>
-        <h1>🎬 <a href="{{ url_for('index') }}">Mes Films </a></h1>
+        <h1>🎬 <a href="{{ url_for('index') }}">Mimatflix</a></h1>
     </header>
     <main>
         {% block content %}{% endblock %}

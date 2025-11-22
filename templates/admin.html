@@ -1,27 +1,130 @@
 {% extends "base.html" %}
 
-{% block title %}Ajouter un film{% endblock %}
+{% block title %}Admin - Mimatflix{% endblock %}
+
+{% block styles %}
+<style>
+    .admin-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    h1, h2 { color: var(--primary); margin-bottom: 1.5rem; }
+    h2 { border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-top: 3rem; }
+
+    .form-card {
+        background: var(--bg-card);
+        padding: 2rem;
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    input[type="text"] {
+        width: 100%;
+        padding: 12px 15px;
+        background: #333;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        color: white;
+        font-size: 1rem;
+    }
+
+    input[type="text"]:focus {
+        outline: none;
+        background: #404040;
+        border-bottom: 2px solid var(--primary);
+    }
+
+    button[type="submit"] {
+        padding: 12px 24px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+        text-transform: uppercase;
+        align-self: flex-start;
+    }
+
+    button[type="submit"]:hover { background: var(--primary-hover); }
+
+    .admin-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .admin-item {
+        background: var(--bg-card);
+        padding: 15px;
+        border-radius: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .admin-item:hover { background: #2a2a2a; }
+
+    .actions a {
+        margin-left: 10px;
+        font-size: 0.9rem;
+        padding: 6px 12px;
+        border-radius: 3px;
+        font-weight: 600;
+    }
+
+    .btn-edit { color: #4fa3ff; background: rgba(79, 163, 255, 0.1); }
+    .btn-edit:hover { background: rgba(79, 163, 255, 0.2); }
+
+    .btn-del { color: #ff4f4f; background: rgba(255, 79, 79, 0.1); }
+    .btn-del:hover { background: rgba(255, 79, 79, 0.2); }
+
+    @media (max-width: 500px) {
+        .admin-item { flex-direction: column; align-items: flex-start; gap: 10px; }
+        .actions { width: 100%; display: flex; justify-content: flex-end; }
+        button[type="submit"] { width: 100%; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="add-movie">
-    <h1>Ajouter un film IMDb</h1>
-    <form method="POST">
+<div class="admin-container">
+    <h1>Ajouter un film</h1>
+    
+    {% if error %}
+    <div style="background: rgba(229,9,20,0.2); color: #ff4f4f; padding: 15px; border-radius: 4px; margin-bottom: 20px; border-left: 3px solid var(--primary);">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST" class="form-card">
         <input type="text" name="imdb_url" placeholder="Lien IMDb du film" required>
-        <input type="text" name="film_url" placeholder="Lien du film" required>
+        <input type="text" name="film_url" placeholder="Lien direct du fichier vidéo (.mp4)" required>
         <button type="submit">Ajouter</button>
     </form>
 
-    <h2>Films existants</h2>
-    <ul class="movie-list">
+    <h2>Bibliothèque</h2>
+    <ul class="admin-list">
         {% for movie in movies %}
-            <li>
-                {{ movie.title }}
-                <a href="{{ url_for('edit_movie', id_movie=movie.id_movie) }}">Modifier</a>
-                <a href="{{ url_for('delete_movie', id_movie=movie.id_movie) }}">supprimer</a>
+            <li class="admin-item">
+                <span class="title">{{ movie.title }}</span>
+                <div class="actions">
+                    <a href="{{ url_for('edit_movie', id_movie=movie.id_movie) }}" class="btn-edit">Modifier</a>
+                    <a href="{{ url_for('delete_movie', id_movie=movie.id_movie) }}" class="btn-del" onclick="return confirm('Supprimer ce film ?')">Supprimer</a>
+                </div>
             </li>
         {% endfor %}
     </ul>
-
-    <p><a href="{{ url_for('index') }}">⬅ Retour à la liste des films</a></p>
+    
+    <p style="margin-top: 30px; text-align: center;">
+        <a href="{{ url_for('index') }}" style="color: var(--text-muted); border-bottom: 1px dotted;">⬅ Retour au site</a>
+    </p>
 </div>
 {% endblock %}

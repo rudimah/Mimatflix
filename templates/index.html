@@ -1,16 +1,101 @@
 {% extends "base.html" %}
 
-{% block title %}Mimatflix{% endblock %}
+{% block title %}Accueil - Mimatflix{% endblock %}
+
+{% block styles %}
+<style>
+    /* Grille par défaut (Desktop/Tablette) */
+    .movie-grid {
+        display: grid;
+        /* Auto-fill avec minimum 200px pour les grands écrans */
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 2rem;
+        padding: 2rem 0;
+    }
+
+    /* Carte Film */
+    .movie-card {
+        background: var(--bg-card);
+        border-radius: var(--radius);
+        overflow: hidden;
+        position: relative;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        cursor: pointer;
+        aspect-ratio: 2/3; /* Force un ratio poster vertical */
+        border: 1px solid rgba(255,255,255,0.05); /* Légère bordure subtile */
+    }
+
+    .movie-card:hover {
+        transform: scale(1.05);
+        box-shadow: 0 10px 25px rgba(229, 9, 20, 0.4);
+        z-index: 10;
+        border-color: var(--primary);
+    }
+
+    .movie-card img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    /* Overlay titre au survol */
+    .card-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);
+        padding: 20px 10px 10px;
+        transition: 0.3s;
+    }
+
+    .movie-card h4 {
+        font-size: 1rem;
+        font-weight: 600;
+        text-align: center;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+        color: white;
+        margin: 0;
+        /* Limite le titre à 2 lignes pour éviter de casser la grille */
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    /* --- RESPONSIVE MOBILE (Modification demandée) --- */
+    @media (max-width: 600px) {
+        .movie-grid {
+            /* Force strictement 2 colonnes sur mobile */
+            grid-template-columns: repeat(2, 1fr); 
+            /* Réduit l'écart entre les affiches pour gagner de la place */
+            gap: 10px; 
+            padding: 1rem 0;
+        }
+
+        .movie-card h4 {
+            font-size: 0.85rem; /* Titre un peu plus petit sur mobile */
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="movie-container">
-    {% for movie in movies %}
-        <div class="movie-card" onclick="location.href='{{ url_for('movie_detail', id_movie=movie.id_movie) }}'">
-            {% if movie.poster %}
-                <img src="{{ movie.poster }}" alt="Affiche">
-            {% endif %}
-            <h4>{{ movie.title }}</h4>
-        </div>
-    {% endfor %}
-</div>
+    <div class="movie-grid">
+        {% for movie in movies %}
+            <div class="movie-card" onclick="location.href='{{ url_for('movie_detail', id_movie=movie.id_movie) }}'">
+                {% if movie.poster %}
+                    <img src="{{ movie.poster }}" alt="{{ movie.title }}" loading="lazy">
+                {% else %}
+                    <div style="height:100%; display:flex; align-items:center; justify-content:center; background:#333; color: #777; font-size: 0.8rem;">
+                        Sans image
+                    </div>
+                {% endif %}
+                <div class="card-overlay">
+                    <h4>{{ movie.title }}</h4>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
 {% endblock %}
