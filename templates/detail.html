@@ -4,16 +4,15 @@
 
 {% block styles %}
 <style>
-    /* --- Layout Desktop (PC) --- */
+
     .detail-wrapper {
         display: grid;
-        grid-template-columns: 300px 1fr; /* Gauche: 300px, Droite: le reste */
+        grid-template-columns: 300px 1fr;
         gap: 40px;
-        align-items: start;
+        align-items: center;
         margin-top: 20px;
     }
 
-    /* Section Info (Gauche sur PC, Haut sur Mobile) */
     .movie-info {
         display: flex;
         flex-direction: column;
@@ -57,7 +56,7 @@
         color: white;
     }
 
-    /* Section Vidéo (Droite sur PC, Bas sur Mobile) */
+
     .video-container {
         background: #000;
         border-radius: var(--radius);
@@ -84,11 +83,6 @@
             gap: 30px;
         }
 
-        /* J'ai supprimé les propriétés 'order'.
-           L'affichage suit maintenant l'ordre naturel du HTML :
-           1. .movie-info (Titre + Poster) -> EN HAUT
-           2. .video-container (Vidéo) -> EN BAS
-        */
 
         .movie-info {
             text-align: center;
@@ -128,11 +122,39 @@
     </div>
 
     <div class="video-container">
-        <video controls autoplay>
+        <video id="moviePlayer" controls autoplay>
             <source src="{{ movie.movie_url }}" type="video/mp4">
             Votre navigateur ne supporte pas la lecture de vidéos HTML5.
         </video>
     </div>
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const video = document.querySelector('video');
+
+        if (video) {
+           
+            window.addEventListener('keydown', function(e) {
+                
+                
+                if (e.key === "ArrowRight") {
+
+                    e.preventDefault(); 
+                    e.stopPropagation(); 
+                    video.currentTime += 15;
+                }
+                
+                else if (e.key === "ArrowLeft") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    video.currentTime -= 15;
+                }
+                
+            }, true); 
+        }
+    });
+</script>
 {% endblock %}
