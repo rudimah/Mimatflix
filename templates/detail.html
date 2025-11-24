@@ -56,7 +56,6 @@
         color: white;
     }
 
-
     .video-container {
         background: #000;
         border-radius: var(--radius);
@@ -66,6 +65,7 @@
         justify-content: center;
         align-items: center;
         width: 100%;
+        position: relative; /
     }
 
     video {
@@ -76,13 +76,35 @@
         outline: none;
     }
 
+    .btn-resume {
+        position: absolute;
+        bottom: 80px; 
+        left: 20px;
+        background: rgba(255, 0, 0, 0.8); 
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        z-index: 10;
+        display: none; 
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        transition: transform 0.2s, background 0.2s;
+    }
+
+    .btn-resume:hover {
+        background: red;
+        transform: scale(1.05);
+    }
+
     /* --- Responsive Mobile & Tablette --- */
     @media (max-width: 900px) {
         .detail-wrapper {
-            grid-template-columns: 1fr; /* Une seule colonne */
+            grid-template-columns: 1fr;
             gap: 30px;
         }
-
 
         .movie-info {
             text-align: center;
@@ -94,7 +116,7 @@
         }
 
         .poster-wrapper {
-            max-width: 250px; /* Taille raisonnable pour le mobile */
+            max-width: 250px;
             margin: 0 auto;
         }
         
@@ -126,20 +148,70 @@
             <source src="{{ movie.movie_url }}" type="video/mp4">
             Votre navigateur ne supporte pas la lecture de vidéos HTML5.
         </video>
+
+        <button id="resumeBtn" class="btn-resume">Reprendre la lecture</button>
     </div>
 
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const video = document.querySelector('video');
+        const video = document.getElementById('moviePlayer');
+        const resumeBtn = document.getElementById('resumeBtn');
+
+        const STORAGE_KEY = "video_progress_" + "{{ movie.title | replace(' ', '_') }}";
+
+        // Fonction utilitaire pour formater le temps (secondes -> MM:SS)
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
 
         if (video) {
-           
+
+            // --- 1. Vérifier s'il y a une sauvegarde au chargement ---
+            video.addEventListener('loadedmetadata', () => {
+                const savedTime = localStorage.getItem(STORAGE_KEY);
+
+
+                if (savedTime && parseFloat(savedTime) > 5) {
+                    video.pause();
+                    const time = parseFloat(savedTime);
+                    
+
+                    resumeBtn.textContent = `Reprendre à ${formatTime(time)}`;
+                    resumeBtn.style.display = 'block'; // Afficher le bouton
+
+                    resumeBtn.onclick = () => {
+                        video.currentTime = time;
+                        video.play();
+                        resumeBtn.style.display = 'none'
+                    };
+                }
+            });
+
+            // --- 2. Sauvegarder la progression en temps réel ---
+            video.addEventListener('timeupdate', () => {
+                // On ne sauvegarde que si la vidéo n'est pas finie
+                if (!video.ended) {
+                    localStorage.setItem(STORAGE_KEY, video.currentTime);
+                }
+                // Optionnel : Cacher le bouton "Reprendre" si l'utilisateur joue la vidéo manuellement
+                if (!video.paused && resumeBtn.style.display === 'block') {
+                    resumeBtn.dataset.timerStarted = "true";
+
+                    setTimeout(() => {
+                        resumeBtn.style.display = 'none';
+                        delete resumeBtn.dataset.timerStarted;
+                    }, 7000); 
+                }
+            });
+
+
             window.addEventListener('keydown', function(e) {
                 
                 if (e.key === "ArrowRight") {
-
                     e.preventDefault(); 
                     e.stopPropagation(); 
                     video.currentTime += 15;
@@ -148,28 +220,28 @@
                 else if (e.key === "ArrowLeft") {
                     e.preventDefault();
                     e.stopPropagation();
-                    
                     video.currentTime -= 15;
                 }
-                else if (e.key=== "f"){
+                else if (e.key === "f"){
                     if (document.fullscreenElement === video){
                         document.exitFullscreen()
                     }
                     else{
                         video.requestFullscreen();
                     }
-                    
                 }
                 else if(e.key === 'p'){
-                    video.requestPictureInPicture()
+                    if (document.pictureInPictureElement) {
+                        document.exitPictureInPicture();
+                    } else {
+                        video.requestPictureInPicture();
+                    }
                 }
                 else if(e.key === 'Escape'){
                     if (document.fullscreenElement){
                         document.exitFullscreen()
                     }
-                
                 }
-
                 
             }, true); 
         }
