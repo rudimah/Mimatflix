@@ -160,7 +160,7 @@ def delete_movie_by_id(id_movie):
         movie = cursor.fetchone()
         delete_query = "DELETE FROM movie WHERE id_movie = %s"
         cursor.execute(delete_query, (id_movie,))
-        #conn.commit()
+        conn.commit()
         filename = movie[0]
         if filename and not filename.startswith("http"):
            delete_r2_file(filename)
