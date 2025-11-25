@@ -1,35 +1,9 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
 import requests
 from bs4 import BeautifulSoup
-import os
-import boto3
-from botocore.client import Config
 from db import load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id
 
 app = Flask(__name__)
-
-
-R2_ACCOUNT_ID = os.environ.get("R2_ACCOUNT_ID", "VOTRE_ACCOUNT_ID_ICI")
-R2_ACCESS_KEY_ID = os.environ.get("R2_ACCESS_KEY_ID", "VOTRE_ACCESS_KEY_ICI")
-R2_SECRET_ACCESS_KEY = os.environ.get("R2_SECRET_ACCESS_KEY", "VOTRE_SECRET_KEY_ICI")
-BUCKET_NAME = os.environ.get("R2_BUCKET_NAME", "mes-films") 
-
-def get_r2_signed_url(filename):
-    try:
-        s3 = boto3.client('s3',
-            endpoint_url=f'https://{R2_ACCOUNT_ID}.r2.cloudflarestorage.com',
-            aws_access_key_id=R2_ACCESS_KEY_ID,
-            aws_secret_access_key=R2_SECRET_ACCESS_KEY,
-            config=Config(signature_version='s3v4')
-        )
-        
-        # Génération du lien
-        url = s3.generate_presigned_url('get_object',
-                                         Params={'Bucket': BUCKET_NAME, 'Key': filename})
-        return url
-    except Exception as e:
-        print(f"Erreur lors de la génération du lien R2 : {e}")
-        return None
 
 
 def scrape_imdb(url):
@@ -125,17 +99,6 @@ def movie_detail(id_movie):
     movie = get_movie_by_id(id_movie)
     if movie is None:
         abort(404) 
-    
-    filename = movie.get('movie_url', '')
-
-
-    if filename and not filename.startswith("http"):
-        signed_url = get_r2_signed_url(filename)
-        if signed_url:
-            movie['movie_url'] = signed_url
-
-        else:
-            print(f"Impossible de générer le lien pour {filename}")
 
     return render_template("detail.html", movie=movie)
 

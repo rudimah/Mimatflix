@@ -3,6 +3,8 @@ from mysql.connector import errorcode
 from dotenv import load_dotenv
 load_dotenv()
 import os
+import boto3
+from botocore.client import Config
 
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_USER = os.environ.get("DB_USER", "root")
@@ -34,6 +36,22 @@ def get_db_connection():
         # Pour cet exemple, nous retournons None et gérons l'absence de connexion plus tard.
         return None
 
+def get_r2_signed_url(filename):
+    try:
+        s3 = boto3.client('s3',
+            endpoint_url=f'https://{os.environ.get("R2_ACCOUNT_ID", "VOTRE_ACCOUNT_ID_ICI")}.r2.cloudflarestorage.com',
+            aws_access_key_id=os.environ.get("R2_ACCESS_KEY_ID", "VOTRE_ACCESS_KEY_ICI"),
+            aws_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY", "VOTRE_SECRET_KEY_ICI"),
+            config=Config(signature_version='s3v4')
+        )
+        
+        # Génération du lien
+        url = s3.generate_presigned_url('get_object',
+                                         Params={'Bucket': os.environ.get("R2_BUCKET_NAME", "mes-films") , 'Key': filename})
+        return url
+    except Exception as e:
+        print(f"Erreur lors de la génération du lien R2 : {e}")
+        return None
 # --- Fonctions utilitaires MySQL (CRUD) ---
 
 def load_data():
@@ -125,6 +143,14 @@ def get_movie_by_id(id_movie):
     try:
         cursor.execute("SELECT id_movie, title, poster, url, movie_url FROM movie WHERE id_movie = %s", (id_movie,))
         movie = cursor.fetchone()
+        filename = movie.get('movie_url', '')
+        if filename and not filename.startswith("http"):
+            signed_url = get_r2_signed_url(filename)
+            if signed_url:
+                movie['movie_url'] = signed_url
+
+            else:
+                print(f"Impossible de générer le lien pour {filename}")
         return movie
     except Exception as e:
         print(f"Erreur lors de la récupération du film {id_movie} : {e}")
