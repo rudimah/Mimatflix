@@ -36,22 +36,56 @@ def get_db_connection():
         # Pour cet exemple, nous retournons None et gérons l'absence de connexion plus tard.
         return None
 
-def get_r2_signed_url(filename):
-    try:
+
+def init_client_r2():
+     try:
         s3 = boto3.client('s3',
-            endpoint_url=f'https://{os.environ.get("R2_ACCOUNT_ID", "VOTRE_ACCOUNT_ID_ICI")}.r2.cloudflarestorage.com',
-            aws_access_key_id=os.environ.get("R2_ACCESS_KEY_ID", "VOTRE_ACCESS_KEY_ICI"),
-            aws_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY", "VOTRE_SECRET_KEY_ICI"),
+            endpoint_url=f'https://{os.environ.get("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com',
+            aws_access_key_id=os.environ.get("R2_ACCESS_KEY_ID"),
+            aws_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY"),
             config=Config(signature_version='s3v4')
         )
+        return s3
+     except Exception as e:
+        print(f"Erreur lors de la suppression du fichier R2 : {e}")
+        return False
+     
+
+def get_r2_signed_url(filename):
+    try:
+        s3 = init_client_r2()
         
-        # Génération du lien
         url = s3.generate_presigned_url('get_object',
                                          Params={'Bucket': os.environ.get("R2_BUCKET_NAME", "mes-films") , 'Key': filename})
         return url
     except Exception as e:
         print(f"Erreur lors de la génération du lien R2 : {e}")
         return None
+
+
+
+def delete_r2_file(filename):
+    """
+    Supprime un fichier spécifique du bucket R2.
+    Retourne True si la commande a été envoyée avec succès, False sinon.
+    """
+
+    print(filename)
+    try:
+        s3 = init_client_r2()
+        
+        s3.delete_object(
+            Bucket=os.environ.get("R2_BUCKET_NAME", "mes-films"),
+            Key=filename
+        )
+        
+        print(f"Fichier '{filename}' supprimé avec succès.")
+        return True
+
+    except Exception as e:
+        print(f"Erreur lors de la suppression du fichier R2 : {e}")
+        return False
+    
 # --- Fonctions utilitaires MySQL (CRUD) ---
 
 def load_data():
@@ -120,13 +154,16 @@ def delete_movie_by_id(id_movie):
     conn = get_db_connection()
     if not conn: return
 
-    
-
     cursor = conn.cursor()
     try:
+        cursor.execute("SELECT movie_url FROM movie WHERE id_movie = %s", (id_movie,))
+        movie = cursor.fetchone()
         delete_query = "DELETE FROM movie WHERE id_movie = %s"
         cursor.execute(delete_query, (id_movie,))
-        conn.commit()
+        #conn.commit()
+        filename = movie[0]
+        if filename and not filename.startswith("http"):
+           delete_r2_file(filename)
     except Exception as e:
         print(f"Erreur lors de la suppression du film {id_movie} : {e}")
         conn.rollback()
