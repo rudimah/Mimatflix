@@ -5,25 +5,45 @@
 {% block styles %}
 <style>
 
+    /* Nouveau conteneur pour le titre en pleine largeur */
+    .movie-header {
+        width: 100%;
+        margin-bottom: 20px; 
+        margin-top: 20px;
+    }
+
+    .movie-header h2 {
+        font-size: 2.5rem; 
+        font-weight: 800;
+        color: var(--text-main);
+        
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: flex-start; 
+        gap: 15px; 
+        flex-wrap: wrap;
+    }
+
+    /* Style du lien/logo IMDB dans le nouveau header */
+    .movie-header h2 img {
+        height: 40px;
+        width: auto;
+        vertical-align: middle;
+        transition: transform 0.2s;
+    }
+
+    .movie-header h2 img:hover {
+        transform: scale(1.1);
+    }
+    
+    /* Le wrapper de la grille (poster + vidéo) */
     .detail-wrapper {
         display: grid;
         grid-template-columns: 300px 1fr;
         gap: 40px;
-        align-items: center;
-        margin-top: 20px;
-    }
-
-    .movie-info {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .movie-info h2 {
-        font-size: 2.2rem;
-        font-weight: 800;
-        line-height: 1.1;
-        color: var(--text-main);
+        align-items: start;
+        margin-top: 0;
     }
 
     .poster-wrapper {
@@ -65,7 +85,7 @@
         justify-content: center;
         align-items: center;
         width: 100%;
-        position: relative; /
+        position: relative;
     }
 
     video {
@@ -99,22 +119,24 @@
         transform: scale(1.05);
     }
 
-    /* --- Responsive Mobile & Tablette --- */
     @media (max-width: 900px) {
         .detail-wrapper {
             grid-template-columns: 1fr;
             gap: 30px;
         }
 
-        .movie-info {
+        .movie-header h2 {
+            font-size: 2rem;
+            justify-content: center;
             text-align: center;
+        }
+
+        .movie-info {
+            display: flex;
+            flex-direction: column;
             align-items: center;
         }
-
-        .movie-info h2 {
-            font-size: 1.8rem;
-        }
-
+        
         .poster-wrapper {
             max-width: 250px;
             margin: 0 auto;
@@ -129,10 +151,18 @@
 {% endblock %}
 
 {% block content %}
+
+<div class="movie-header">
+    <h2>
+        {{ movie.title }} 
+        <a href="{{movie.url}}" target="_blank">
+            <img src="{{ url_for('static', filename='imdb.svg') }}" alt="Imdb">
+        </a> 
+    </h2>
+</div>
 <div class="detail-wrapper">
     
     <div class="movie-info">
-        <h2>{{ movie.title }}</h2>
         
         {% if movie.poster %}
         <div class="poster-wrapper">
@@ -161,7 +191,6 @@
 
         const STORAGE_KEY = "video_progress_" + "{{ movie.title | replace(' ', '_') }}";
 
-        // Fonction utilitaire pour formater le temps (secondes -> MM:SS)
         function formatTime(seconds) {
             const minutes = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
@@ -170,7 +199,6 @@
 
         if (video) {
 
-            // --- 1. Vérifier s'il y a une sauvegarde au chargement ---
             video.addEventListener('loadedmetadata', () => {
                 const savedTime = localStorage.getItem(STORAGE_KEY);
 
@@ -181,7 +209,7 @@
                     
 
                     resumeBtn.textContent = `Reprendre à ${formatTime(time)}`;
-                    resumeBtn.style.display = 'block'; // Afficher le bouton
+                    resumeBtn.style.display = 'block'; 
 
                     resumeBtn.onclick = () => {
                         video.currentTime = time;
@@ -191,14 +219,14 @@
                 }
             });
 
-            // --- 2. Sauvegarder la progression en temps réel ---
+
             video.addEventListener('timeupdate', () => {
-                // On ne sauvegarde que si la vidéo n'est pas finie
+
                 if (!video.ended) {
                     localStorage.setItem(STORAGE_KEY, video.currentTime);
                 }
-                // Optionnel : Cacher le bouton "Reprendre" si l'utilisateur joue la vidéo manuellement
-                if (!video.paused && resumeBtn.style.display === 'block') {
+
+                if (!video.paused && resumeBtn.style.display === 'block' && !resumeBtn.dataset.timerStarted) {
                     resumeBtn.dataset.timerStarted = "true";
 
                     setTimeout(() => {
@@ -240,6 +268,16 @@
                 else if(e.key === 'Escape'){
                     if (document.fullscreenElement){
                         document.exitFullscreen()
+                    }
+                }
+
+                else if (e.key === " "){
+                    if(video.paused){
+
+                        video.play()
+                    }
+                    else{
+                        video.pause()
                     }
                 }
                 
