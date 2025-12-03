@@ -192,7 +192,6 @@
     document.addEventListener('DOMContentLoaded', function() {
         const video = document.getElementById('moviePlayer');
         const resumeBtn = document.getElementById('resumeBtn');
-
         const STORAGE_KEY = "video_progress_" + "{{ movie.title | replace(' ', '_') }}";
 
         function formatTime(seconds) {
@@ -202,95 +201,61 @@
         }
 
         if (video) {
-
             video.addEventListener('loadedmetadata', () => {
                 const savedTime = localStorage.getItem(STORAGE_KEY);
-
-
                 if (savedTime && parseFloat(savedTime) > 5) {
-                    video.pause();
+                    video.pause(); // On pause au chargement pour attendre le choix
                     const time = parseFloat(savedTime);
-                    
-
                     resumeBtn.textContent = `Reprendre à ${formatTime(time)}`;
-                    resumeBtn.style.display = 'block'; 
-
+                    resumeBtn.style.display = 'block';
                     resumeBtn.onclick = () => {
                         video.currentTime = time;
                         video.play();
-                        resumeBtn.style.display = 'none'
+                        resumeBtn.style.display = 'none';
                     };
                 }
             });
 
-
             video.addEventListener('timeupdate', () => {
-
                 if (!video.ended) {
                     localStorage.setItem(STORAGE_KEY, video.currentTime);
                 }
-
                 if (!video.paused && resumeBtn.style.display === 'block' && !resumeBtn.dataset.timerStarted) {
                     resumeBtn.dataset.timerStarted = "true";
-
                     setTimeout(() => {
                         resumeBtn.style.display = 'none';
                         delete resumeBtn.dataset.timerStarted;
-                    }, 7000); 
+                    }, 7000);
                 }
             });
 
-
             window.addEventListener('keydown', function(e) {
-               
                 const videoKeys = ["ArrowRight", "ArrowLeft", " ", "f", "p", "Escape"];
-                
+
                 if (videoKeys.includes(e.key)) {
-                    e.preventDefault();
+                    e.preventDefault(); // 1. Bloque le comportement natif (scroll, double pause)
                     e.stopPropagation();
                 }
 
                 if (e.key === "ArrowRight") {
                     video.currentTime += 15;
-                }
-                
+                } 
                 else if (e.key === "ArrowLeft") {
                     video.currentTime -= 15;
+                } 
+                else if (e.key === "f") {
+                    document.fullscreenElement === video ? document.exitFullscreen() : video.requestFullscreen();
                 }
-
-                else if (e.key === "f"){
-                    if (document.fullscreenElement === video){
-                        document.exitFullscreen()
-                    }
-                    else{
-                        video.requestFullscreen();
-                    }
+                else if (e.key === "p") {
+                    document.pictureInPictureElement ? document.exitPictureInPicture() : video.requestPictureInPicture();
                 }
-
-                else if(e.key === 'p'){
-                    if (document.pictureInPictureElement) {
-                        document.exitPictureInPicture();
-                    } else {
-                        video.requestPictureInPicture();
-                    }
-                }
-                else if(e.key === 'Escape'){
-                    if (document.fullscreenElement){
-                        document.exitFullscreen()
-                    }
-                }
-
-                else if (e.key === " "){
-                    // Le e.preventDefault() plus haut empêche le scroll
-                    // et empêche le navigateur de faire son propre toggle play/pause
-                    if(video.paused){
-                        video.play();
-                    }
-                    else{
-                        video.pause();
-                    }
+                else if (e.key === " ") {
+                    video.paused ? video.play() : video.pause();
                 }
                 
+                video.blur(); 
+                document.body.focus(); // On remet le focus sur la page globale
+
             }, true);
         }
     });
