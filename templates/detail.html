@@ -146,6 +146,10 @@
             max-width: 250px;
             margin: 10px auto 0;
         }
+        
+        video:focus, .btn-resume:focus {
+            outline: none;
+        }
     }
 </style>
 {% endblock %}
@@ -238,18 +242,22 @@
 
 
             window.addEventListener('keydown', function(e) {
+               
+                const videoKeys = ["ArrowRight", "ArrowLeft", " ", "f", "p", "Escape"];
                 
+                if (videoKeys.includes(e.key)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+
                 if (e.key === "ArrowRight") {
-                    e.preventDefault(); 
-                    e.stopPropagation(); 
                     video.currentTime += 15;
                 }
                 
                 else if (e.key === "ArrowLeft") {
-                    e.preventDefault();
-                    e.stopPropagation();
                     video.currentTime -= 15;
                 }
+
                 else if (e.key === "f"){
                     if (document.fullscreenElement === video){
                         document.exitFullscreen()
@@ -258,6 +266,7 @@
                         video.requestFullscreen();
                     }
                 }
+
                 else if(e.key === 'p'){
                     if (document.pictureInPictureElement) {
                         document.exitPictureInPicture();
@@ -272,16 +281,17 @@
                 }
 
                 else if (e.key === " "){
+                    // Le e.preventDefault() plus haut empêche le scroll
+                    // et empêche le navigateur de faire son propre toggle play/pause
                     if(video.paused){
-
-                        video.play()
+                        video.play();
                     }
                     else{
-                        video.pause()
+                        video.pause();
                     }
                 }
                 
-            }, true); 
+            }, true);
         }
     });
 </script>
