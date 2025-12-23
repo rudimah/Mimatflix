@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
 import requests
 from bs4 import BeautifulSoup
-from db import load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id
+from db import load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id
 
 app = Flask(__name__)
 
@@ -88,9 +88,14 @@ def edit_movie(id_movie):
     return render_template("edit.html", movie=movie)
 
 
-@app.route("/delete/<int:id_movie>", methods=["GET"])
+@app.route("/<int:id_movie>", methods=["POST"])
 def delete_movie(id_movie):
     delete_movie_by_id(id_movie)
+    return redirect(url_for("add_movie"))
+
+@app.route("/video/<int:id_movie>", methods=["POST"])
+def delete_video(id_movie):
+    delete_video_by_id(id_movie)
     return redirect(url_for("add_movie"))
 
 

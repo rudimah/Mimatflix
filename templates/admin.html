@@ -54,6 +54,13 @@
 
     button[type="submit"]:hover { background: var(--primary-hover); }
 
+    /* Boutons de suppression - styles doux */
+    .actions button[type="submit"] {
+        text-transform: none;
+        font-size: 0.9rem;
+        padding: 6px 12px;
+    }
+
     .admin-list {
         list-style: none;
         display: flex;
@@ -72,23 +79,54 @@
     
     .admin-item:hover { background: #2a2a2a; }
 
+    .actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+    }
+
+    .actions button,
     .actions a {
-        margin-left: 10px;
         font-size: 0.9rem;
         padding: 6px 12px;
         border-radius: 3px;
         font-weight: 600;
+        border: none;
+        cursor: pointer;
+        text-decoration: none;
+        transition: 0.2s;
+        background: transparent;
+        white-space: nowrap;
+        display: inline-block;
     }
 
-    .btn-edit { color: #4fa3ff; background: rgba(79, 163, 255, 0.1); }
-    .btn-edit:hover { background: rgba(79, 163, 255, 0.2); }
+    .btn-edit { 
+        color: #4fa3ff !important; 
+        background: rgba(79, 163, 255, 0.1) !important; 
+    }
+    .btn-edit:hover { 
+        background: rgba(79, 163, 255, 0.2) !important; 
+    }
 
-    .btn-del { color: #ff4f4f; background: rgba(255, 79, 79, 0.1); }
-    .btn-del:hover { background: rgba(255, 79, 79, 0.2); }
+    .btn-del { 
+        color: #e57373 !important; 
+        background: rgba(229, 115, 115, 0.12) !important; 
+    }
+    .btn-del:hover { 
+        background: rgba(229, 115, 115, 0.2) !important; 
+    }
+
+    .btn-del-video { 
+        color: #ffb74d !important; 
+        background: rgba(255, 183, 77, 0.12) !important; 
+    }
+    .btn-del-video:hover { 
+        background: rgba(255, 183, 77, 0.2) !important; 
+    }
 
     @media (max-width: 500px) {
         .admin-item { flex-direction: column; align-items: flex-start; gap: 10px; }
-        .actions { width: 100%; display: flex; justify-content: flex-end; }
+        .actions { width: 100%; display: flex; justify-content: flex-end; flex-wrap: wrap; }
         button[type="submit"] { width: 100%; }
     }
 </style>
@@ -117,7 +155,16 @@
                 <span class="title">{{ movie.title }}</span>
                 <div class="actions">
                     <a href="{{ url_for('edit_movie', id_movie=movie.id_movie) }}" class="btn-edit">Modifier</a>
-                    <a href="{{ url_for('delete_movie', id_movie=movie.id_movie) }}" class="btn-del" onclick="return confirm('Supprimer ce film ?')">Supprimer</a>
+                    
+                    <form method="POST" action="{{ url_for('delete_video', id_movie=movie.id_movie) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Supprimer la vidéo uniquement ?')">
+                        <input type="hidden" name="_method" value="DELETE">
+                        <button type="submit" class="btn-del-video">Suppr. Vidéo</button>
+                    </form>
+                    
+                    <form method="POST" action="{{ url_for('delete_movie', id_movie=movie.id_movie) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Supprimer définitivement ce film ?')">
+                        <input type="hidden" name="_method" value="DELETE">
+                        <button type="submit" class="btn-del">Suppr. Film</button>
+                    </form>
                 </div>
             </li>
         {% endfor %}

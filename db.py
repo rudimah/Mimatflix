@@ -56,7 +56,7 @@ def get_r2_signed_url(filename):
         s3 = init_client_r2()
         
         url = s3.generate_presigned_url('get_object',
-                                         Params={'Bucket': os.environ.get("R2_BUCKET_NAME", "mes-films") , 'Key': filename})
+                                         Params={'Bucket': os.environ.get("R2_BUCKET_NAME", "mes-films") , 'Key': filename}, ExpiresIn=10800)
         return url
     except Exception as e:
         print(f"Erreur lors de la génération du lien R2 : {e}")
@@ -170,6 +170,28 @@ def delete_movie_by_id(id_movie):
     finally:
         cursor.close()
         conn.close()
+
+
+def delete_video_by_id(id_movie):
+    """Supprime un film en utilisant son id_movie."""
+    conn = get_db_connection()
+    if not conn: return
+
+    cursor = conn.cursor()
+    try:
+        cursor.execute("SELECT movie_url FROM movie WHERE id_movie = %s", (id_movie,))
+        movie = cursor.fetchone()
+        filename = movie[0]
+        if filename and not filename.startswith("http"):
+           delete_r2_file(filename)
+    except Exception as e:
+        print(f"Erreur lors de la suppression du film {id_movie} : {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+
 
 def get_movie_by_id(id_movie):
     """Récupère un film unique par son id_movie."""

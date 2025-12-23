@@ -86,6 +86,30 @@
         align-items: center;
         width: 100%;
         position: relative;
+        min-height: 400px;
+    }
+
+    .video-not-found {
+        text-align: center;
+        color: #fff;
+        padding: 40px;
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+    }
+
+    .video-not-found h3 {
+        font-size: 2rem;
+        margin-bottom: 15px;
+        color: #ff4444;
+    }
+
+    .video-not-found p {
+        font-size: 1.2rem;
+        color: #ccc;
     }
 
     video {
@@ -178,12 +202,17 @@
     </div>
 
     <div class="video-container">
-        <video id="moviePlayer" controls autoplay>
+        <video id="moviePlayer" controls autoplay style="display: block;">
             <source src="{{ movie.movie_url }}" type="video/mp4">
             Votre navigateur ne supporte pas la lecture de vidéos HTML5.
         </video>
 
         <button id="resumeBtn" class="btn-resume">Reprendre la lecture</button>
+        
+        <div id="videoError" class="video-not-found">
+            <h3>⚠️ Vidéo non trouvée</h3>
+            <p>Le fichier vidéo pour ce film n'est pas disponible.</p>
+        </div>
     </div>
 
 </div>
@@ -192,6 +221,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         const video = document.getElementById('moviePlayer');
         const resumeBtn = document.getElementById('resumeBtn');
+        const videoError = document.getElementById('videoError');
         const STORAGE_KEY = "video_progress_" + "{{ movie.title | replace(' ', '_') }}";
 
         function formatTime(seconds) {
@@ -201,10 +231,38 @@
         }
 
         if (video) {
+            // Gestion des erreurs de chargement
+            video.addEventListener('error', () => {
+                console.log('Erreur vidéo détectée');
+                video.style.display = 'none';
+                resumeBtn.style.display = 'none';
+                videoError.style.display = 'block';
+            });
+
+            // Gestion de l'erreur sur la source
+            const source = video.querySelector('source');
+            if (source) {
+                source.addEventListener('error', () => {
+                    console.log('Erreur source détectée');
+                    video.style.display = 'none';
+                    resumeBtn.style.display = 'none';
+                    videoError.style.display = 'block';
+                });
+            }
+            const loadTimeout = setTimeout(() => {
+                if (video.readyState === 0) {
+                    console.log('Timeout de chargement');
+                    video.style.display = 'none';
+                    resumeBtn.style.display = 'none';
+                    videoError.style.display = 'block';
+                }
+            }, 3000);
+
             video.addEventListener('loadedmetadata', () => {
+                clearTimeout(loadTimeout);
                 const savedTime = localStorage.getItem(STORAGE_KEY);
                 if (savedTime && parseFloat(savedTime) > 5) {
-                    video.pause(); // On pause au chargement pour attendre le choix
+                    video.pause(); 
                     const time = parseFloat(savedTime);
                     resumeBtn.textContent = `Reprendre à ${formatTime(time)}`;
                     resumeBtn.style.display = 'block';
@@ -233,7 +291,7 @@
                 const videoKeys = ["ArrowRight", "ArrowLeft", " ", "f", "p", "Escape"];
 
                 if (videoKeys.includes(e.key)) {
-                    e.preventDefault(); // 1. Bloque le comportement natif (scroll, double pause)
+                    e.preventDefault(); 
                     e.stopPropagation();
                 }
 
@@ -254,7 +312,7 @@
                 }
                 
                 video.blur(); 
-                document.body.focus(); // On remet le focus sur la page globale
+                document.body.focus(); 
 
             }, true);
         }
