@@ -249,14 +249,6 @@
                     videoError.style.display = 'block';
                 });
             }
-            const loadTimeout = setTimeout(() => {
-                if (video.readyState === 0) {
-                    console.log('Timeout de chargement');
-                    video.style.display = 'none';
-                    resumeBtn.style.display = 'none';
-                    videoError.style.display = 'block';
-                }
-            }, 3000);
 
             video.addEventListener('loadedmetadata', () => {
                 clearTimeout(loadTimeout);
