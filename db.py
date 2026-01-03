@@ -206,7 +206,8 @@ def get_movie_by_id(id_movie):
         if filename and not filename.startswith("http"):
             signed_url = get_r2_signed_url(filename)
             if signed_url:
-                movie['movie_url'] = signed_url
+                movie['play_url'] = signed_url
+                return movie
 
             else:
                 print(f"Impossible de générer le lien pour {filename}")

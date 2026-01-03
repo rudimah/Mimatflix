@@ -203,7 +203,7 @@
 
     <div class="video-container">
         <video id="moviePlayer" controls autoplay style="display: block;">
-            <source src="{{ movie.movie_url }}" type="video/mp4">
+            <source src="{{ movie.play_url }}" type="video/mp4">
             Votre navigateur ne supporte pas la lecture de vidéos HTML5.
         </video>
 
@@ -219,95 +219,93 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const video = document.getElementById('moviePlayer');
-        const resumeBtn = document.getElementById('resumeBtn');
-        const videoError = document.getElementById('videoError');
-        const STORAGE_KEY = "video_progress_" + "{{ movie.title | replace(' ', '_') }}";
+    const video = document.getElementById('moviePlayer');
+    const resumeBtn = document.getElementById('resumeBtn');
+    const videoError = document.getElementById('videoError');
+    const STORAGE_KEY = "video_progress_" + "{{ movie.title | replace(' ', '_') | lower }}";
 
-        function formatTime(seconds) {
-            const minutes = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
-        }
+    function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+    }
 
-        if (video) {
-            // Gestion des erreurs de chargement
-            video.addEventListener('error', () => {
-                console.log('Erreur vidéo détectée');
-                video.style.display = 'none';
-                resumeBtn.style.display = 'none';
-                videoError.style.display = 'block';
-            });
+    if (video) {
+        const handleVideoError = () => {
+            console.log('Erreur de chargement vidéo');
+            video.style.display = 'none';
+            resumeBtn.style.display = 'none';
+            videoError.style.display = 'block';
+        };
 
-            // Gestion de l'erreur sur la source
-            const source = video.querySelector('source');
-            if (source) {
-                source.addEventListener('error', () => {
-                    console.log('Erreur source détectée');
-                    video.style.display = 'none';
+        video.addEventListener('error', handleVideoError);
+        const source = video.querySelector('source');
+        if (source) source.addEventListener('error', handleVideoError);
+
+        video.addEventListener('loadedmetadata', () => {
+            const savedTime = localStorage.getItem(STORAGE_KEY);
+            
+            if (savedTime && parseFloat(savedTime) > 10) { 
+                const time = parseFloat(savedTime);
+                
+                video.pause(); 
+                
+                resumeBtn.textContent = `Reprendre à ${formatTime(time)}`;
+                resumeBtn.style.display = 'block';
+                
+                resumeBtn.onclick = () => {
+                    video.currentTime = time;
+                    video.play();
                     resumeBtn.style.display = 'none';
-                    videoError.style.display = 'block';
-                });
+                };
+            }
+        });
+
+        video.addEventListener('timeupdate', () => {
+            if (!video.ended && video.currentTime > 0) {
+                localStorage.setItem(STORAGE_KEY, video.currentTime);
+            }
+            
+            if (!video.paused && resumeBtn.style.display === 'block' && !resumeBtn.dataset.timerStarted) {
+                resumeBtn.dataset.timerStarted = "true";
+                setTimeout(() => {
+                    resumeBtn.style.opacity = '0';
+                    setTimeout(() => { 
+                        resumeBtn.style.display = 'none'; 
+                    }, 500);
+                }, 7000);
+            }
+        });
+
+        let isProcessingKey = false;
+
+        window.addEventListener('keydown', function(e) {
+            const videoKeys = ["ArrowRight", "ArrowLeft", " ", "f", "p"];
+            if (!videoKeys.includes(e.key)) return;
+
+            e.preventDefault();
+            e.stopPropagation(); 
+
+            if (isProcessingKey) return;
+            isProcessingKey = true;
+
+            if (e.key === "ArrowRight") {
+                video.currentTime = Math.min(video.duration, video.currentTime + 15);
+            } 
+            else if (e.key === "ArrowLeft") {
+                video.currentTime = Math.max(0, video.currentTime - 15);
+            } 
+            else if (e.key === " ") {
+                if (video.paused) video.play(); else video.pause();
+            }
+            else if (e.key === "f") {
+                if (!document.fullscreenElement) video.requestFullscreen();
+                else document.exitFullscreen();
             }
 
-            video.addEventListener('loadedmetadata', () => {
-                clearTimeout(loadTimeout);
-                const savedTime = localStorage.getItem(STORAGE_KEY);
-                if (savedTime && parseFloat(savedTime) > 5) {
-                    video.pause(); 
-                    const time = parseFloat(savedTime);
-                    resumeBtn.textContent = `Reprendre à ${formatTime(time)}`;
-                    resumeBtn.style.display = 'block';
-                    resumeBtn.onclick = () => {
-                        video.currentTime = time;
-                        video.play();
-                        resumeBtn.style.display = 'none';
-                    };
-                }
-            });
-
-            video.addEventListener('timeupdate', () => {
-                if (!video.ended) {
-                    localStorage.setItem(STORAGE_KEY, video.currentTime);
-                }
-                if (!video.paused && resumeBtn.style.display === 'block' && !resumeBtn.dataset.timerStarted) {
-                    resumeBtn.dataset.timerStarted = "true";
-                    setTimeout(() => {
-                        resumeBtn.style.display = 'none';
-                        delete resumeBtn.dataset.timerStarted;
-                    }, 7000);
-                }
-            });
-
-            window.addEventListener('keydown', function(e) {
-                const videoKeys = ["ArrowRight", "ArrowLeft", " ", "f", "p", "Escape"];
-
-                if (videoKeys.includes(e.key)) {
-                    e.preventDefault(); 
-                    e.stopPropagation();
-                }
-
-                if (e.key === "ArrowRight") {
-                    video.currentTime += 15;
-                } 
-                else if (e.key === "ArrowLeft") {
-                    video.currentTime -= 15;
-                } 
-                else if (e.key === "f") {
-                    document.fullscreenElement === video ? document.exitFullscreen() : video.requestFullscreen();
-                }
-                else if (e.key === "p") {
-                    document.pictureInPictureElement ? document.exitPictureInPicture() : video.requestPictureInPicture();
-                }
-                else if (e.key === " ") {
-                    video.paused ? video.play() : video.pause();
-                }
-                
-                video.blur(); 
-                document.body.focus(); 
-
-            }, true);
-        }
-    });
+            setTimeout(() => { isProcessingKey = false; }, 200);
+        }, false);
+    }
+});
 </script>
 {% endblock %}
