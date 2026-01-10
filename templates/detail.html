@@ -3,47 +3,41 @@
 {% block title %}{{ movie.title }}{% endblock %}
 
 {% block styles %}
-<style>
+<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
 
-    /* Nouveau conteneur pour le titre en pleine largeur */
+<style>
+    :root {
+        --plyr-color-main: #e50914; /* Rouge style Netflix */
+    }
+
+    /* --- Styles Généraux --- */
     .movie-header {
         width: 100%;
-        margin-bottom: 20px; 
-        margin-top: 20px;
+        margin: 20px 0;
     }
 
     .movie-header h2 {
         font-size: 2.5rem; 
         font-weight: 800;
         color: var(--text-main);
-        
         display: flex;
-        flex-direction: row;
         align-items: center;
-        justify-content: flex-start; 
         gap: 15px; 
         flex-wrap: wrap;
     }
 
-    /* Style du lien/logo IMDB dans le nouveau header */
     .movie-header h2 img {
         height: 40px;
         width: auto;
-        vertical-align: middle;
         transition: transform 0.2s;
     }
-
-    .movie-header h2 img:hover {
-        transform: scale(1.1);
-    }
+    .movie-header h2 img:hover { transform: scale(1.1); }
     
-    /* Le wrapper de la grille (poster + vidéo) */
     .detail-wrapper {
         display: grid;
         grid-template-columns: 300px 1fr;
         gap: 40px;
         align-items: start;
-        margin-top: 0;
     }
 
     .poster-wrapper {
@@ -52,7 +46,6 @@
         overflow: hidden;
         box-shadow: var(--shadow);
     }
-
     .poster-wrapper img {
         width: 100%;
         height: auto;
@@ -69,111 +62,124 @@
         text-align: center;
         transition: 0.3s;
         margin-top: 10px;
+        color: inherit;
+        text-decoration: none;
     }
-
     .btn-back:hover {
         background: rgba(255,255,255,0.2);
         color: white;
     }
 
-    .video-container {
-        background: #000;
+    /* --- Styles Vidéo & Overlay --- */
+    .video-wrapper-custom {
         border-radius: var(--radius);
         overflow: hidden;
-        box-shadow: 0 15px 40px rgba(0,0,0,0.7);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+        background: #000;
+        position: relative; 
+        min-height: 400px; /* Hauteur min pour afficher l'erreur proprement */
         display: flex;
-        justify-content: center;
         align-items: center;
-        width: 100%;
-        position: relative;
-        min-height: 400px;
+        justify-content: center;
     }
 
-    .video-not-found {
-        text-align: center;
-        color: #fff;
-        padding: 40px;
-        display: none;
+    /* Correction critique pour Mobile : empêche le zoom natif */
+    .plyr {
+        width: 100%;
+        touch-action: manipulation; 
+    }
+
+    /* Force la hauteur correcte sur mobile en plein écran */
+    .plyr--fullscreen-active .plyr__video-wrapper {
+        height: 100vh;
+        height: 100dvh; 
+    }
+    .plyr--fullscreen-active {
+        z-index: 99999 !important;
+    }
+
+    /* Animation visuelle (Double Tap) */
+    .seek-animation {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 100%;
-    }
-
-    .video-not-found h3 {
         font-size: 2rem;
-        margin-bottom: 15px;
-        color: #ff4444;
-    }
-
-    .video-not-found p {
-        font-size: 1.2rem;
-        color: #ccc;
-    }
-
-    video {
-        width: 100%;
-        height: auto;
-        max-height: 85vh;
-        display: block;
-        outline: none;
-    }
-
-    .btn-resume {
-        position: absolute;
-        bottom: 80px; 
-        left: 20px;
-        background: rgba(255, 0, 0, 0.8); 
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 4px;
-        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.9);
+        background: rgba(0, 0, 0, 0.6);
+        padding: 20px 30px;
+        border-radius: 50px;
+        pointer-events: none; 
+        opacity: 0;
+        transition: opacity 0.2s, transform 0.2s;
+        z-index: 20;
         font-weight: bold;
-        cursor: pointer;
-        z-index: 10;
-        display: none; 
-        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        transition: transform 0.2s, background 0.2s;
+    }
+    .seek-animation.active {
+        animation: fadeZoom 0.6s ease-out forwards;
+    }
+    @keyframes fadeZoom {
+        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
+        20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
     }
 
-    .btn-resume:hover {
-        background: red;
-        transform: scale(1.05);
+    /* Toast Notification (Reprise de lecture) */
+    .resume-toast {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: rgba(40, 167, 69, 0.95);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-weight: 600;
+        z-index: 30;
+        transform: translateX(150%);
+        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .resume-toast.show {
+        transform: translateX(0);
+    }
+
+    /* --- ÉCRAN D'ERREUR --- */
+    .video-error-screen {
+        display: none; /* Caché par défaut */
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        width: 100%;
+        height: 100%;
+        padding: 40px;
+        background: #111;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 10;
+    }
+
+    .video-error-screen h3 {
+        color: #ff4444;
+        font-size: 1.8rem;
+        margin-bottom: 15px;
+    }
+    .video-error-screen p {
+        color: #ccc;
+        font-size: 1.1rem;
+        max-width: 400px;
+    }
+    .video-error-icon {
+        font-size: 4rem;
+        margin-bottom: 20px;
     }
 
     @media (max-width: 900px) {
-        .detail-wrapper {
-            grid-template-columns: 1fr;
-            gap: 30px;
-        }
-
-        .movie-header h2 {
-            font-size: 2rem;
-            justify-content: center;
-            text-align: center;
-        }
-
-        .movie-info {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .poster-wrapper {
-            max-width: 250px;
-            margin: 0 auto;
-        }
-        
-        .btn-back {
-            max-width: 250px;
-            margin: 10px auto 0;
-        }
-        
-        video:focus, .btn-resume:focus {
-            outline: none;
-        }
+        .detail-wrapper { grid-template-columns: 1fr; gap: 30px; }
+        .movie-header h2 { justify-content: center; text-align: center; }
+        .movie-info { align-items: center; display: flex; flex-direction: column; }
+        .poster-wrapper, .btn-back { max-width: 250px; }
     }
 </style>
 {% endblock %}
@@ -188,124 +194,148 @@
         </a> 
     </h2>
 </div>
+
 <div class="detail-wrapper">
     
     <div class="movie-info">
-        
         {% if movie.poster %}
         <div class="poster-wrapper">
             <img src="{{ movie.poster }}" alt="Affiche de {{ movie.title }}">
         </div>
         {% endif %}
-
         <a href="{{ url_for('index') }}" class="btn-back">⬅ Retour à la liste</a>
     </div>
 
-    <div class="video-container">
-        <video id="moviePlayer" controls autoplay style="display: block;">
-            <source src="{{ movie.play_url }}" type="video/mp4">
-            Votre navigateur ne supporte pas la lecture de vidéos HTML5.
-        </video>
+    <div class="video-wrapper-custom" id="videoContainer">
+        <div id="seekFeedback" class="seek-animation"></div>
+        <div id="resumeToast" class="resume-toast">Lecture reprise</div>
 
-        <button id="resumeBtn" class="btn-resume">Reprendre la lecture</button>
-        
-        <div id="videoError" class="video-not-found">
-            <h3>⚠️ Vidéo non trouvée</h3>
-            <p>Le fichier vidéo pour ce film n'est pas disponible.</p>
+        <div id="errorScreen" class="video-error-screen">
+            <div class="video-error-icon">⚠️</div>
+            <h3>Vidéo inaccessible</h3>
+            <p>Le flux vidéo ne peut pas être chargé. Il a peut-être été supprimé par l'administrateur ou le lien est expiré.</p>
         </div>
+
+        <video id="player" playsinline controls crossorigin>
+            <source src="{{ movie.play_url }}" type="video/mp4" />
+        </video>
     </div>
 
 </div>
 
+<script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-    const video = document.getElementById('moviePlayer');
-    const resumeBtn = document.getElementById('resumeBtn');
-    const videoError = document.getElementById('videoError');
-    const STORAGE_KEY = "video_progress_" + "{{ movie.title | replace(' ', '_') | lower }}";
+    document.addEventListener('DOMContentLoaded', () => {
+        const STORAGE_KEY = "video_progress_" + "{{ movie.title | replace(' ', '_') | lower }}";
+        const feedbackEl = document.getElementById('seekFeedback');
+        const resumeToast = document.getElementById('resumeToast');
+        const errorScreen = document.getElementById('errorScreen');
+        const videoElement = document.getElementById('player');
 
-    function formatTime(seconds) {
-        const minutes = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
-    }
+        const triggerErrorState = () => {
+            console.error("Erreur de chargement vidéo détectée.");
+            const plyrContainer = document.querySelector('.plyr');
+            if (plyrContainer) plyrContainer.style.display = 'none';
+            
+            if (videoElement) videoElement.style.display = 'none';
 
-    if (video) {
-        const handleVideoError = () => {
-            console.log('Erreur de chargement vidéo');
-            video.style.display = 'none';
-            resumeBtn.style.display = 'none';
-            videoError.style.display = 'block';
+            errorScreen.style.display = 'flex';
+            
+            resumeToast.style.display = 'none';
         };
 
-        video.addEventListener('error', handleVideoError);
-        const source = video.querySelector('source');
-        if (source) source.addEventListener('error', handleVideoError);
+        const player = new Plyr('#player', {
+            controls: [
+                'play-large', 'restart', 'rewind', 'play', 'fast-forward', 
+                'progress', 'current-time', 'duration', 'mute', 'volume', 
+                'settings', 'pip', 'fullscreen'
+            ],
+            seekTime: 10, 
+            keyboard: { focused: true, global: true },
+            fullscreen: { 
+                enabled: true, 
+                fallback: true, 
+                iosNative: true 
+            } 
+        });
 
-        video.addEventListener('loadedmetadata', () => {
+        player.on('error', triggerErrorState);
+        
+        const sourceTags = videoElement.querySelectorAll('source');
+        sourceTags.forEach(source => {
+            source.addEventListener('error', triggerErrorState);
+        });
+
+
+        function formatTime(seconds) {
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+
+            if (h > 0) {
+                return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
+            }
+            return `${m}:${s < 10 ? '0' : ''}${s}`;
+        }
+
+        player.on('loadedmetadata', event => {
+            if (errorScreen.style.display === 'flex') return;
+
             const savedTime = localStorage.getItem(STORAGE_KEY);
-            
-            if (savedTime && parseFloat(savedTime) > 10) { 
+            if (savedTime && parseFloat(savedTime) > 5) {
                 const time = parseFloat(savedTime);
-                
-                video.pause(); 
-                
-                resumeBtn.textContent = `Reprendre à ${formatTime(time)}`;
-                resumeBtn.style.display = 'block';
-                
-                resumeBtn.onclick = () => {
-                    video.currentTime = time;
-                    video.play();
-                    resumeBtn.style.display = 'none';
-                };
+                player.currentTime = time;
+                resumeToast.innerText = "Reprise à " + formatTime(time) + " ↺";
+                resumeToast.classList.add('show');
+                setTimeout(() => { resumeToast.classList.remove('show'); }, 4000);
             }
         });
 
-        video.addEventListener('timeupdate', () => {
-            if (!video.ended && video.currentTime > 0) {
-                localStorage.setItem(STORAGE_KEY, video.currentTime);
-            }
-            
-            if (!video.paused && resumeBtn.style.display === 'block' && !resumeBtn.dataset.timerStarted) {
-                resumeBtn.dataset.timerStarted = "true";
-                setTimeout(() => {
-                    resumeBtn.style.opacity = '0';
-                    setTimeout(() => { 
-                        resumeBtn.style.display = 'none'; 
-                    }, 500);
-                }, 7000);
+        player.on('timeupdate', event => {
+            if (player.playing && player.currentTime > 0) {
+                localStorage.setItem(STORAGE_KEY, player.currentTime);
             }
         });
 
-        let isProcessingKey = false;
+        const wrapper = document.querySelector('.plyr'); 
+        
+        if(wrapper) {
+            let lastClickTime = 0;
+            wrapper.addEventListener('click', (e) => {
+                if (errorScreen.style.display === 'flex') return;
 
-        window.addEventListener('keydown', function(e) {
-            const videoKeys = ["ArrowRight", "ArrowLeft", " ", "f", "p"];
-            if (!videoKeys.includes(e.key)) return;
+                const currentTime = new Date().getTime();
+                const timeDiff = currentTime - lastClickTime;
 
-            e.preventDefault();
-            e.stopPropagation(); 
+                if (timeDiff < 300 && timeDiff > 0) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation(); 
 
-            if (isProcessingKey) return;
-            isProcessingKey = true;
+                    const rect = wrapper.getBoundingClientRect();
+                    const x = e.clientX - rect.left; 
+                    const width = rect.width;
+                    
+                    if (x < width * 0.35) {
+                        player.rewind(10);
+                        showFeedback('⏪ -10s');
+                    } else if (x > width * 0.65) {
+                        player.forward(10);
+                        showFeedback('+10s ⏩');
+                    }
+                    lastClickTime = 0; 
+                } else {
+                    lastClickTime = currentTime;
+                }
+            }, true);
+        }
 
-            if (e.key === "ArrowRight") {
-                video.currentTime = Math.min(video.duration, video.currentTime + 15);
-            } 
-            else if (e.key === "ArrowLeft") {
-                video.currentTime = Math.max(0, video.currentTime - 15);
-            } 
-            else if (e.key === " ") {
-                if (video.paused) video.play(); else video.pause();
-            }
-            else if (e.key === "f") {
-                if (!document.fullscreenElement) video.requestFullscreen();
-                else document.exitFullscreen();
-            }
-
-            setTimeout(() => { isProcessingKey = false; }, 200);
-        }, false);
-    }
-});
+        function showFeedback(text) {
+            feedbackEl.classList.remove('active');
+            void feedbackEl.offsetWidth; 
+            feedbackEl.innerText = text;
+            feedbackEl.classList.add('active');
+        }
+    });
 </script>
 {% endblock %}
