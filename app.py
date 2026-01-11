@@ -83,13 +83,13 @@ def edit_movie(id_movie):
         url = request.form.get("film_url")
         
         try:
+            updated_movie_details = scrape_imdb(imdb_url)
             if "streamtape" in url and "token" not in url:
                 updated_movie_details["movie_url"] = flux_mp4(url)    
             else:
                 updated_movie_details["movie_url"] = url
                 
-            updated_movie_details = scrape_imdb(imdb_url)
-
+            
 
             update_movie(id_movie, updated_movie_details)
             return redirect(url_for("add_movie"))
