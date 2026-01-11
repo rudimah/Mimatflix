@@ -2,6 +2,9 @@ from flask import Flask, render_template, request, redirect, url_for, abort
 import requests
 from bs4 import BeautifulSoup
 from data import load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, flux_mp4
+import os
+from dotenv import load_dotenv
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -44,7 +47,8 @@ def index():
     return render_template("index.html", movies=movies)
 
 
-@app.route("/hamidur", methods=["GET", "POST"])
+
+@app.route(os.environ.get("ADMIN_URL", "/ADMIN"), methods=["GET", "POST"])
 def add_movie():
     movies = load_data()
     if request.method == "POST":
