@@ -5,3 +5,4 @@ beautifulsoup4
 gunicorn
 boto3
 dotenv
+selenium
