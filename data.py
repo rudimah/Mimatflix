@@ -69,15 +69,22 @@ def get_r2_signed_url(filename):
 
 def flux_mp4(url):
 
+    os.environ['SELENIUM_CACHE_PATH'] = '/tmp/.selenium_cache'
+    os.environ['HOME'] = '/tmp'
+
     chrome_options = Options()
-    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--no-sandbox")
     chrome_options.add_argument("--disable-dev-shm-usage")
-    driver = webdriver.Chrome(options=chrome_options)
-
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--single-process")
+    chrome_options.add_argument("--disable-extensions")
+    chrome_options.add_argument("--disable-infobars")
+    
     try:
+        driver = webdriver.Chrome(options=chrome_options)
+
         driver.get(url)
-        time.sleep(2)
 
         try:
             hidden_elem = driver.find_element(By.ID, "norobotlink")
@@ -97,7 +104,8 @@ def flux_mp4(url):
             return None
 
     finally:
-        driver.quit()
+        if 'driver' in locals():
+            driver.quit()
 
 
 def delete_r2_file(filename):
