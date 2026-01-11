@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
 import requests
 from bs4 import BeautifulSoup
-from db import load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id
+from data import load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, flux_mp4
 
 app = Flask(__name__)
 
@@ -50,11 +50,14 @@ def add_movie():
     if request.method == "POST":
         imdb_url = request.form.get("imdb_url")
 
-        filename_or_url = request.form.get("film_url")
+        url = request.form.get("film_url")
         
         try:
             movie = scrape_imdb(imdb_url)
-            movie["movie_url"] = filename_or_url
+            if "streamtape" in url and "token" not in url:
+                movie["movie_url"] = flux_mp4(url)    
+            else:
+                movie["movie_url"] = url
             save_movie(movie)
             return redirect(url_for("add_movie"))
         except ValueError as e:
@@ -73,10 +76,16 @@ def edit_movie(id_movie):
 
     if request.method == "POST":
         imdb_url = request.form.get("imdb_url")
-        filename_or_url = request.form.get("film_url")
+        url = request.form.get("film_url")
+        
         try:
+            if "streamtape" in url and "token" not in url:
+                updated_movie_details["movie_url"] = flux_mp4(url)    
+            else:
+                updated_movie_details["movie_url"] = url
+                
             updated_movie_details = scrape_imdb(imdb_url)
-            updated_movie_details["movie_url"] = filename_or_url
+
 
             update_movie(id_movie, updated_movie_details)
             return redirect(url_for("add_movie"))
@@ -92,6 +101,7 @@ def edit_movie(id_movie):
 def delete_movie(id_movie):
     delete_movie_by_id(id_movie)
     return redirect(url_for("add_movie"))
+
 
 @app.route("/video/<int:id_movie>", methods=["POST"])
 def delete_video(id_movie):

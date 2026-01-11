@@ -1,10 +1,14 @@
 import mysql.connector
 from mysql.connector import errorcode
-from dotenv import load_dotenv
-load_dotenv()
 import os
 import boto3
 from botocore.client import Config
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+import time
+from selenium import webdriver
+from dotenv import load_dotenv
+load_dotenv()
 
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_USER = os.environ.get("DB_USER", "root")
@@ -63,6 +67,38 @@ def get_r2_signed_url(filename):
         return None
 
 
+def flux_mp4(url):
+
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    driver = webdriver.Chrome(options=chrome_options)
+
+    try:
+        driver.get(url)
+        time.sleep(2)
+
+        try:
+            hidden_elem = driver.find_element(By.ID, "norobotlink")
+            link_base = hidden_elem.get_attribute("innerText") 
+
+            if not link_base:
+                
+                return None
+
+            final_link = link_base + "&dl=1"
+
+            if final_link.startswith("//"):
+                final_link = "https:" + final_link
+            return final_link
+
+        except Exception as e:
+            return None
+
+    finally:
+        driver.quit()
+
 
 def delete_r2_file(filename):
     """
@@ -86,7 +122,9 @@ def delete_r2_file(filename):
         print(f"Erreur lors de la suppression du fichier R2 : {e}")
         return False
     
+
 # --- Fonctions utilitaires MySQL (CRUD) ---
+
 
 def load_data():
     """Charge tous les films depuis la base de données."""
@@ -105,6 +143,7 @@ def load_data():
     finally:
         cursor.close()
         conn.close()
+
 
 def save_movie(movie):
     """Ajoute un nouveau film dans la base de données."""
@@ -128,6 +167,7 @@ def save_movie(movie):
         cursor.close()
         conn.close()
 
+
 def update_movie(id_movie, movie):
     """Met à jour un film existant en utilisant son id_movie."""
     conn = get_db_connection()
@@ -148,6 +188,7 @@ def update_movie(id_movie, movie):
     finally:
         cursor.close()
         conn.close()
+
 
 def delete_movie_by_id(id_movie):
     """Supprime un film en utilisant son id_movie."""
@@ -192,7 +233,6 @@ def delete_video_by_id(id_movie):
         conn.close()
 
 
-
 def get_movie_by_id(id_movie):
     """Récupère un film unique par son id_movie."""
     conn = get_db_connection()
@@ -203,14 +243,17 @@ def get_movie_by_id(id_movie):
         cursor.execute("SELECT id_movie, title, poster, url, movie_url FROM movie WHERE id_movie = %s", (id_movie,))
         movie = cursor.fetchone()
         filename = movie.get('movie_url', '')
-        if filename and not filename.startswith("http"):
-            signed_url = get_r2_signed_url(filename)
-            if signed_url:
-                movie['play_url'] = signed_url
-                return movie
+       
+        if "token" in filename:
+            movie['play_url'] = filename
+            return movie
+        signed_url = get_r2_signed_url(filename)
+        if signed_url:
+            movie['play_url'] = signed_url
+            return movie
 
-            else:
-                print(f"Impossible de générer le lien pour {filename}")
+        else:
+            print(f"Impossible de générer le lien pour {filename}")
         return movie
     except Exception as e:
         print(f"Erreur lors de la récupération du film {id_movie} : {e}")

@@ -7,10 +7,9 @@
 
 <style>
     :root {
-        --plyr-color-main: #e50914; /* Rouge style Netflix */
+        --plyr-color-main: #e50914; 
     }
 
-    /* --- Styles Généraux --- */
     .movie-header {
         width: 100%;
         margin: 20px 0;
@@ -70,26 +69,23 @@
         color: white;
     }
 
-    /* --- Styles Vidéo & Overlay --- */
     .video-wrapper-custom {
         border-radius: var(--radius);
         overflow: hidden;
         box-shadow: 0 15px 40px rgba(0,0,0,0.5);
         background: #000;
         position: relative; 
-        min-height: 400px; /* Hauteur min pour afficher l'erreur proprement */
+        min-height: 400px; 
         display: flex;
         align-items: center;
         justify-content: center;
     }
 
-    /* Correction critique pour Mobile : empêche le zoom natif */
     .plyr {
         width: 100%;
         touch-action: manipulation; 
     }
 
-    /* Force la hauteur correcte sur mobile en plein écran */
     .plyr--fullscreen-active .plyr__video-wrapper {
         height: 100vh;
         height: 100dvh; 
@@ -98,7 +94,6 @@
         z-index: 99999 !important;
     }
 
-    /* Animation visuelle (Double Tap) */
     .seek-animation {
         position: absolute;
         top: 50%;
@@ -124,7 +119,6 @@
         100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
     }
 
-    /* Toast Notification (Reprise de lecture) */
     .resume-toast {
         position: absolute;
         top: 20px;
@@ -143,9 +137,8 @@
         transform: translateX(0);
     }
 
-    /* --- ÉCRAN D'ERREUR --- */
     .video-error-screen {
-        display: none; /* Caché par défaut */
+        display: none; 
         flex-direction: column;
         align-items: center;
         justify-content: center;
@@ -217,7 +210,7 @@
         </div>
 
         <video id="player" playsinline controls crossorigin>
-            <source src="{{ movie.play_url }}" type="video/mp4" />
+            <source src="https://s-delivery30.mxcontent.net/d/4nqxdovxco4gq0/mxmxs6vsnwxyxqwzhmvt50u9kun8p?ab=0&r=https%3A%2F%2Fm1xdrop.net%2Ff%2F4nqxdovxco4gq0" type="video/mp4" />
         </video>
     </div>
 
