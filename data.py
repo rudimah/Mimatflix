@@ -3,10 +3,8 @@ from mysql.connector import errorcode
 import os
 import boto3
 from botocore.client import Config
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-import time
-from selenium import webdriver
+from curl_cffi import requests
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -68,44 +66,25 @@ def get_r2_signed_url(filename):
 
 
 def flux_mp4(url):
-
-    os.environ['SELENIUM_CACHE_PATH'] = '/tmp/.selenium_cache'
-    os.environ['HOME'] = '/tmp'
-
-    chrome_options = Options()
-    chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
-    chrome_options.add_argument("--disable-gpu")
-    chrome_options.add_argument("--single-process")
-    chrome_options.add_argument("--disable-extensions")
-    chrome_options.add_argument("--disable-infobars")
-    
     try:
-        driver = webdriver.Chrome(options=chrome_options)
-
-        driver.get(url)
-
-        try:
-            hidden_elem = driver.find_element(By.ID, "norobotlink")
-            link_base = hidden_elem.get_attribute("innerText") 
-
-            if not link_base:
-                
-                return None
-
-            final_link = link_base + "&dl=1"
-
-            if final_link.startswith("//"):
+        response = requests.get(url, impersonate="chrome110")
+        
+        if response.status_code == 200:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            hidden_elem = soup.find(id="norobotlink")
+            if hidden_elem:
+                link_base = hidden_elem.get_text()
+                if not link_base:
+                    return None
+                    
+                final_link = link_base + "&dl=1"
                 final_link = "https:" + final_link
-            return final_link
+                return final_link
+            
+    except Exception:
+        return None
 
-        except Exception as e:
-            return None
-
-    finally:
-        if 'driver' in locals():
-            driver.quit()
+print(flux_mp4("https://streamtape.com/v/BLmeBja22ksyZle"))
 
 
 def delete_r2_file(filename):
