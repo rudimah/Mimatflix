@@ -78,13 +78,11 @@ def flux_mp4(url):
                     return None
                     
                 final_link = link_base + "&dl=1"
-                final_link = "https:" + final_link
+                final_link = "https:/" + final_link
                 return final_link
             
     except Exception:
         return None
-
-print(flux_mp4("https://streamtape.com/v/BLmeBja22ksyZle"))
 
 
 def delete_r2_file(filename):
