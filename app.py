@@ -1,51 +1,18 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
 import requests
-from bs4 import BeautifulSoup
-from data import load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, flux_mp4
+from data import scrape_imdb, load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, flux_mp4
 import os
 from dotenv import load_dotenv
 load_dotenv()
 
+
 app = Flask(__name__)
-
-
-def scrape_imdb(url):
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.4896.127 Safari/537.36"}
-    res = requests.get(url, headers=headers)
-    if res.status_code != 200:
-        raise ValueError(f"Impossible de charger la page IMDb (Status {res.status_code})")
-
-    soup = BeautifulSoup(res.text, "html.parser")
-
-    # Titre
-    title_tag = soup.find("h1", {"data-testid": "hero-title-block__title"})
-    if not title_tag:
-        title_tag = soup.find("h1")
-
-    title = title_tag.text.strip() if title_tag else "Titre inconnu"
-
-    # Image
-    img_tag = soup.find("div", {"data-testid": "hero-media__poster"}).find("img") if soup.find("div", {"data-testid": "hero-media__poster"}) else None
-    
-    if not img_tag:
-        img_tag = soup.find("img", {"class": "ipc-image"})
-
-    if img_tag and "src" in img_tag.attrs:
-        img_url = img_tag["src"].replace("_UX128_", "_UX600_").split("._V1_")[0] + "._V1_.jpg"
-    else:
-        img_url = ""
-
-    if title == "Titre inconnu" and img_url == "":
-         raise ValueError("Scraping IMDb a échoué. Vérifiez l'URL ou les sélecteurs.")
-
-    return {"title": title, "poster": img_url, "url": url}
 
 
 @app.route("/")
 def index():
     movies = load_data()
     return render_template("index.html", movies=movies)
-
 
 
 @app.route(os.environ.get("ADMIN_URL", "/ADMIN"), methods=["GET", "POST"])
@@ -88,8 +55,6 @@ def edit_movie(id_movie):
                 updated_movie_details["movie_url"] = flux_mp4(url)    
             else:
                 updated_movie_details["movie_url"] = url
-                
-            
 
             update_movie(id_movie, updated_movie_details)
             return redirect(url_for("add_movie"))

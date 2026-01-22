@@ -14,6 +14,49 @@ DB_PASSWORD = os.environ.get("DB_PASSWORD", "password")
 DB_DATABASE = os.environ.get("DB_DATABASE", "defaultdb")
 DB_PORT = int(os.environ.get("DB_PORT", 3306))
 
+
+def scrape_imdb(url):
+    BASE_URL = "https://caching.graphql.imdb.com/"
+    movie_id = url.split('/')[5]
+    HEADERS = {
+        "accept": "application/graphql+json, application/json",
+        "content-type": "application/json",
+        "origin": "https://www.imdb.com",
+        "referer": "https://www.imdb.com/",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "x-imdb-client-name": "imdb-web-next-localized",
+        "x-imdb-client-version": "1.0.0",
+        "x-imdb-user-country": "US",
+        "x-imdb-user-language": "en-US",
+    }
+    payload = {
+        "operationName": "GetTitle",
+        "variables": {"id": movie_id},
+        "query": """
+        query GetTitle($id: ID!) {
+          title(id: $id) {
+            id
+            titleText { text }
+            primaryImage { url }
+          }
+        }
+        """
+    }
+
+    r = requests.post(BASE_URL, headers=HEADERS, json=payload)
+    r.raise_for_status()
+
+    title = r.json().get("data", {}).get("title")
+    if not title:
+        raise ValueError("Titre introuvable")
+    
+    return {
+        "title": title["titleText"]["text"],
+        "poster": title.get("primaryImage", {}).get("url"),
+        "url": url
+    }
+
+
 def get_db_connection():
     """Établit et retourne une nouvelle connexion à la base de données."""
     try:
