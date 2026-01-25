@@ -17,7 +17,9 @@ DB_PORT = int(os.environ.get("DB_PORT", 3306))
 
 def scrape_imdb(url):
     BASE_URL = "https://caching.graphql.imdb.com/"
-    movie_id = url.split('/')[5]
+    for elem in url.split("/"):
+        if elem.startswith("tt"):
+            movie_id = elem
     HEADERS = {
         "accept": "application/graphql+json, application/json",
         "content-type": "application/json",
