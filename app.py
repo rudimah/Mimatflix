@@ -1,5 +1,4 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
-import requests
 from data import scrape_imdb, load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, flux_mp4
 import os
 from dotenv import load_dotenv

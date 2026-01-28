@@ -274,7 +274,7 @@ def get_movie_by_id(id_movie):
         movie = cursor.fetchone()
         filename = movie.get('movie_url', '')
        
-        if "token" in filename:
+        if "token" or "tapecontent" in filename:
             movie['play_url'] = filename
             return movie
         signed_url = get_r2_signed_url(filename)
