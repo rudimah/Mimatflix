@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
-from data import scrape_imdb, load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, flux_mp4
+from data import scrape_imdb, load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, flux_mp4, flux_mp4_v2
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -25,7 +25,7 @@ def add_movie():
         try:
             movie = scrape_imdb(imdb_url)
             if "streamtape" in url and "token" not in url:
-                movie["movie_url"] = flux_mp4(url)    
+                movie["movie_url"] = flux_mp4(url)
             else:
                 movie["movie_url"] = url
             save_movie(movie)

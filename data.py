@@ -2,6 +2,7 @@ import mysql.connector
 from mysql.connector import errorcode
 import os
 import boto3
+import time
 from botocore.client import Config
 from curl_cffi import requests
 from bs4 import BeautifulSoup
@@ -129,6 +130,21 @@ def flux_mp4(url):
     except Exception:
         return None
 
+
+def flux_mp4_v2(file_id):
+    try:
+        login = "9ed0988438a3002a07ae"
+        key = "jaG6mkw2VvhGGV"
+        response = requests.get(f"https://api.streamtape.com/file/dlticket?file={file_id}&login={login}&key={key}")
+        
+        if response.status_code == 200:
+           ticket = response.json()['result']['ticket']
+           time.sleep(5)
+           link = requests.get(f"https://api.streamtape.com/file/dl?file={file_id}&ticket={ticket}")
+           if link.status_code == 200:
+               return link.json()['result']['url']
+    except Exception:
+        return None
 
 def delete_r2_file(filename):
     """
@@ -277,7 +293,9 @@ def get_movie_by_id(id_movie):
         if "directlink" in filename:
             movie['play_url'] = filename.replace("directlink ", "")
             return movie
-        print("weee")
+        if "id" in filename:
+            movie['play_url'] = flux_mp4_v2(filename.replace("id ", ""))
+            return movie
         signed_url = get_r2_signed_url(filename)
         if signed_url:
             movie['play_url'] = signed_url
