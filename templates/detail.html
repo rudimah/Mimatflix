@@ -4,330 +4,147 @@
 
 {% block styles %}
 <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
-
 <style>
-    :root {
-        --plyr-color-main: #e50914; 
-    }
-
-    .movie-header {
-        width: 100%;
-        margin: 20px 0;
-    }
-
-    .movie-header h2 {
-        font-size: 2.5rem; 
-        font-weight: 800;
-        color: var(--text-main);
-        display: flex;
-        align-items: center;
-        gap: 15px; 
-        flex-wrap: wrap;
-    }
-
-    .movie-header h2 img {
-        height: 40px;
-        width: auto;
-        transition: transform 0.2s;
-    }
-    .movie-header h2 img:hover { transform: scale(1.1); }
-    
-    .detail-wrapper {
-        display: grid;
-        grid-template-columns: 300px 1fr;
-        gap: 40px;
-        align-items: start;
-    }
-
-    .poster-wrapper {
-        width: 100%;
-        border-radius: var(--radius);
-        overflow: hidden;
-        box-shadow: var(--shadow);
-    }
-    .poster-wrapper img {
-        width: 100%;
-        height: auto;
-        display: block;
-    }
-
-    .btn-back {
-        display: block;
-        width: 100%;
-        padding: 12px 0;
-        background: rgba(255,255,255,0.1);
-        border-radius: 4px;
-        font-weight: 600;
-        text-align: center;
-        transition: 0.3s;
-        margin-top: 10px;
-        color: inherit;
-        text-decoration: none;
-    }
-    .btn-back:hover {
-        background: rgba(255,255,255,0.2);
-        color: white;
-    }
-
-    .video-wrapper-custom {
-        border-radius: var(--radius);
-        overflow: hidden;
-        box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-        background: #000;
-        position: relative; 
-        min-height: 400px; 
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .plyr {
-        width: 100%;
-        touch-action: manipulation; 
-    }
-
-    .plyr--fullscreen-active .plyr__video-wrapper {
-        height: 100vh;
-        height: 100dvh; 
-    }
-    .plyr--fullscreen-active {
-        z-index: 99999 !important;
-    }
-
-    .seek-animation {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 2rem;
-        color: rgba(255, 255, 255, 0.9);
-        background: rgba(0, 0, 0, 0.6);
-        padding: 20px 30px;
-        border-radius: 50px;
-        pointer-events: none; 
-        opacity: 0;
-        transition: opacity 0.2s, transform 0.2s;
-        z-index: 20;
-        font-weight: bold;
-    }
-    .seek-animation.active {
-        animation: fadeZoom 0.6s ease-out forwards;
-    }
-    @keyframes fadeZoom {
-        0% { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }
-        20% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
-        100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
-    }
-
-    .resume-toast {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        background: rgba(40, 167, 69, 0.95);
-        color: white;
-        padding: 12px 24px;
-        border-radius: 8px;
-        font-weight: 600;
-        z-index: 30;
-        transform: translateX(150%);
-        transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .resume-toast.show {
-        transform: translateX(0);
-    }
-
-    .video-error-screen {
-        display: none; 
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        width: 100%;
-        height: 100%;
-        padding: 40px;
-        background: #111;
-        position: absolute;
-        top: 0;
-        left: 0;
-        z-index: 10;
-    }
-
-    .video-error-screen h3 {
-        color: #ff4444;
-        font-size: 1.8rem;
-        margin-bottom: 15px;
-    }
-    .video-error-screen p {
-        color: #ccc;
-        font-size: 1.1rem;
-        max-width: 400px;
-    }
-    .video-error-icon {
-        font-size: 4rem;
-        margin-bottom: 20px;
-    }
-
-    @media (max-width: 900px) {
-        .detail-wrapper { grid-template-columns: 1fr; gap: 30px; }
-        .movie-header h2 { justify-content: center; text-align: center; }
-        .movie-info { align-items: center; display: flex; flex-direction: column; }
-        .poster-wrapper, .btn-back { max-width: 250px; }
-    }
+    :root { --plyr-color-main: #e50914; }
+    .plyr--fullscreen-active .plyr__video-wrapper { height: 100vh; height: 100dvh; }
+    .plyr--fullscreen-active { z-index: 99999 !important; }
 </style>
 {% endblock %}
 
 {% block content %}
-
-<div class="movie-header">
-    <h2>
-        {{ movie.title }} 
-        <a href="{{movie.url}}" target="_blank">
-            <img src="{{ url_for('static', filename='imdb.svg') }}" alt="Imdb">
-        </a> 
+<div class="mb-8">
+    <h2 class="text-3xl md:text-4xl font-extrabold flex items-center justify-center lg:justify-start gap-4 flex-wrap">
+        {{ movie.title }}
+        <a href="{{movie.url}}" target="_blank" class="transition-transform hover:scale-110">
+            <img src="{{ url_for('static', filename='imdb.svg') }}" alt="Imdb" class="h-8 md:h-10 w-auto">
+        </a>
     </h2>
 </div>
 
-<div class="detail-wrapper">
+<div class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8 items-start">
     
-    <div class="movie-info">
+    <div class="flex flex-col items-center max-w-[250px] lg:max-w-none mx-auto lg:mx-0 w-full">
         {% if movie.poster %}
-        <div class="poster-wrapper">
-            <img src="{{ movie.poster }}" alt="Affiche de {{ movie.title }}">
+        <div class="w-full rounded-xl overflow-hidden shadow-2xl mb-4 border border-white/5">
+            <img src="{{ movie.poster }}" alt="Affiche de {{ movie.title }}" class="w-full h-auto block">
         </div>
         {% endif %}
-        <a href="{{ url_for('index') }}" class="btn-back">⬅ Retour à la liste</a>
+        <button onclick="window.history.back()" class="w-full py-3 bg-white/10 hover:bg-white/20 rounded-lg text-center font-semibold transition-colors cursor-pointer">
+            ⬅ Retour
+        </button>
     </div>
 
-    <div class="video-wrapper-custom" id="videoContainer">
-        <div id="seekFeedback" class="seek-animation"></div>
-        <div id="resumeToast" class="resume-toast">Lecture reprise</div>
-
-        <div id="errorScreen" class="video-error-screen">
-            <div class="video-error-icon">⚠️</div>
-            <h3>Vidéo inaccessible</h3>
-            <p>Le flux vidéo ne peut pas être chargé. Il a peut-être été supprimé par l'administrateur ou le lien est expiré.</p>
+    <div class="relative rounded-xl overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.5)] bg-black min-h-[300px] md:min-h-[500px] flex items-center justify-center group" id="videoContainer">
+        
+        <div id="videoLoader" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md transition-opacity duration-300">
+            <div class="w-16 h-16 border-4 border-zinc-700 border-t-primary rounded-full animate-spin"></div>
+            <p class="mt-4 text-zinc-300 font-medium animate-pulse tracking-wide">Chargement du film...</p>
         </div>
 
-        <video id="player" playsinline controls crossorigin>
-            <source src="{{movie.play_url}}" type="video/mp4" />
+        <div id="seekFeedback" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl text-white/90 bg-black/60 px-6 py-4 rounded-full pointer-events-none opacity-0 transition-all z-20 font-bold scale-90"></div>
+        <div id="resumeToast" class="absolute top-5 right-5 bg-green-600/95 text-white px-6 py-3 rounded-lg font-semibold z-30 translate-x-[150%] transition-transform duration-500 shadow-xl">Lecture reprise</div>
+
+        <video id="player" playsinline controls crossorigin class="w-full">
+            <source src="{{ movie.play_url if movie.play_url else '' }}" type="video/mp4" />
         </video>
     </div>
 
 </div>
 
 <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
-
 <script>
     document.addEventListener('DOMContentLoaded', () => {
-        const STORAGE_KEY = "video_progress_" + "{{ movie.title | replace(' ', '_') | lower }}";
+        const videoElement = document.getElementById('player');
+        if (!videoElement) return;
+
+        const STORAGE_KEY = "video_progress_{{ movie.title | replace(' ', '_') | lower }}";
         const feedbackEl = document.getElementById('seekFeedback');
         const resumeToast = document.getElementById('resumeToast');
-        const errorScreen = document.getElementById('errorScreen');
-        const videoElement = document.getElementById('player');
+        const loader = document.getElementById('videoLoader');
 
-        const triggerErrorState = () => {
-            console.error("Erreur de chargement vidéo détectée.");
-            const plyrContainer = document.querySelector('.plyr');
-            if (plyrContainer) plyrContainer.style.display = 'none';
-            
-            if (videoElement) videoElement.style.display = 'none';
-
-            errorScreen.style.display = 'flex';
-            
-            resumeToast.style.display = 'none';
-        };
-
+        // Initialisation de Plyr
         const player = new Plyr('#player', {
-            controls: [
-                'play-large', 'restart', 'rewind', 'play', 'fast-forward', 
-                'progress', 'current-time', 'duration', 'mute', 'volume', 
-                'settings', 'pip', 'fullscreen'
-            ],
+            controls: ['play-large', 'restart', 'rewind', 'play', 'fast-forward', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'pip', 'fullscreen'],
             seekTime: 10, 
             keyboard: { focused: true, global: true },
-            fullscreen: { 
-                enabled: true, 
-                fallback: true, 
-                iosNative: true 
-            } 
+            fullscreen: { enabled: true, fallback: true, iosNative: true } 
         });
 
-        player.on('error', triggerErrorState);
-        
-        const sourceTags = videoElement.querySelectorAll('source');
-        sourceTags.forEach(source => {
-            source.addEventListener('error', triggerErrorState);
+        // Gestion du loader : on l'enlève seulement si la vidéo commence vraiment à jouer
+        player.on('playing', () => {
+            if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
         });
+        player.on('canplay', () => {
+            if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
+        });
+        player.on('waiting', () => {
+            if(loader) loader.classList.remove('opacity-0', 'pointer-events-none');
+        });
+        if (videoElement.readyState >= 3) {
+            if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
+        }
 
-
+        // Formatage du temps pour le toast de reprise
         function formatTime(seconds) {
             const h = Math.floor(seconds / 3600);
             const m = Math.floor((seconds % 3600) / 60);
             const s = Math.floor(seconds % 60);
-
-            if (h > 0) {
-                return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
-            }
+            if (h > 0) return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
             return `${m}:${s < 10 ? '0' : ''}${s}`;
         }
 
-        player.on('loadedmetadata', event => {
-            if (errorScreen.style.display === 'flex') return;
-
+        // Reprise de la lecture
+        player.on('loadedmetadata', () => {
             const savedTime = localStorage.getItem(STORAGE_KEY);
             if (savedTime && parseFloat(savedTime) > 5) {
                 const time = parseFloat(savedTime);
                 player.currentTime = time;
-                resumeToast.innerText = "Reprise à " + formatTime(time) + " ↺";
-                resumeToast.classList.add('show');
-                setTimeout(() => { resumeToast.classList.remove('show'); }, 4000);
+                if(resumeToast) {
+                    resumeToast.innerText = "Reprise à " + formatTime(time) + " ↺";
+                    resumeToast.classList.remove('translate-x-[150%]');
+                    setTimeout(() => resumeToast.classList.add('translate-x-[150%]'), 4000);
+                }
             }
         });
 
-        player.on('timeupdate', event => {
+        // Sauvegarde de la progression
+        player.on('timeupdate', () => {
             if (player.playing && player.currentTime > 0) {
                 localStorage.setItem(STORAGE_KEY, player.currentTime);
             }
         });
 
+        // Double-clic pour avancer/reculer de 10s
         const wrapper = document.querySelector('.plyr'); 
-        
         if(wrapper) {
             let lastClickTime = 0;
             wrapper.addEventListener('click', (e) => {
-                if (errorScreen.style.display === 'flex') return;
-
                 const currentTime = new Date().getTime();
                 const timeDiff = currentTime - lastClickTime;
-
                 if (timeDiff < 300 && timeDiff > 0) {
-                    e.preventDefault();
-                    e.stopImmediatePropagation(); 
-
+                    e.preventDefault(); e.stopImmediatePropagation(); 
                     const rect = wrapper.getBoundingClientRect();
                     const x = e.clientX - rect.left; 
                     const width = rect.width;
-                    
-                    if (x < width * 0.35) {
-                        player.rewind(10);
-                        showFeedback('⏪ -10s');
-                    } else if (x > width * 0.65) {
-                        player.forward(10);
-                        showFeedback('+10s ⏩');
-                    }
+                    if (x < width * 0.35) { player.rewind(10); showFeedback('⏪ -10s'); } 
+                    else if (x > width * 0.65) { player.forward(10); showFeedback('+10s ⏩'); }
                     lastClickTime = 0; 
-                } else {
-                    lastClickTime = currentTime;
-                }
+                } else lastClickTime = currentTime;
             }, true);
         }
 
         function showFeedback(text) {
-            feedbackEl.classList.remove('active');
+            if(!feedbackEl) return;
+            feedbackEl.classList.remove('opacity-100', 'scale-100');
+            feedbackEl.classList.add('opacity-0', 'scale-90');
             void feedbackEl.offsetWidth; 
             feedbackEl.innerText = text;
-            feedbackEl.classList.add('active');
+            feedbackEl.classList.remove('opacity-0', 'scale-90');
+            feedbackEl.classList.add('opacity-100', 'scale-100');
+            setTimeout(() => {
+                feedbackEl.classList.remove('opacity-100', 'scale-100');
+                feedbackEl.classList.add('opacity-0', 'scale-90');
+            }, 600);
         }
     });
 </script>

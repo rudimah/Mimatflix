@@ -2,88 +2,30 @@
 
 {% block title %}Modifier {{ movie.title }}{% endblock %}
 
-{% block styles %}
-<style>
-    .edit-container {
-        max-width: 600px;
-        margin: 0 auto;
-    }
-    
-    h1 { color: var(--primary); text-align: center; margin-bottom: 1.5rem; }
-
-    .form-card {
-        background: var(--bg-card);
-        padding: 2rem;
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    label { color: var(--text-muted); font-size: 0.9rem; margin-bottom: -10px; display: block; }
-
-    input[type="text"] {
-        width: 100%;
-        padding: 12px 15px;
-        background: #333;
-        border: 1px solid transparent;
-        border-radius: 4px;
-        color: white;
-        font-size: 1rem;
-    }
-
-    input[type="text"]:focus {
-        outline: none;
-        background: #404040;
-        border-bottom: 2px solid var(--primary);
-    }
-
-    button[type="submit"] {
-        width: 100%;
-        padding: 12px;
-        background: var(--primary);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-weight: bold;
-        cursor: pointer;
-        text-transform: uppercase;
-        margin-top: 10px;
-    }
-    
-    button[type="submit"]:hover { background: var(--primary-hover); }
-
-    .back-link {
-        display: block;
-        text-align: center;
-        margin-top: 20px;
-        color: var(--text-muted);
-    }
-    .back-link:hover { color: white; }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="edit-container">
-    <h1>Modifier le film</h1>
+<div class="max-w-xl mx-auto mt-8 sm:mt-12">
+    <h1 class="text-3xl font-extrabold text-primary text-center mb-8">Modifier le film</h1>
 
     {% if error %}
-    <div style="background: rgba(229,9,20,0.2); color: #ff4f4f; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+    <div class="bg-red-900/20 text-red-400 p-4 rounded-lg mb-6 border-l-4 border-primary font-medium">
         {{ error }}
     </div>
     {% endif %}
 
-    <form method="POST" class="form-card">
-        <label>Lien IMDb</label>
-        <input type="text" name="imdb_url" value="{{ movie.url }}" required>
+    <form method="POST" class="bg-bgCard p-6 sm:p-8 rounded-xl shadow-lg border border-white/5 flex flex-col gap-6">
+        <div>
+            <label class="block text-zinc-400 text-sm mb-2 font-semibold uppercase tracking-wider">Lien IMDb</label>
+            <input type="text" name="imdb_url" value="{{ movie.url }}" required class="w-full p-4 bg-zinc-800 border border-transparent rounded-lg text-white focus:outline-none focus:bg-zinc-700 focus:border-b-2 focus:border-b-primary transition-colors">
+        </div>
         
-        <label>Lien Vidéo (.mp4)</label>
-        <input type="text" name="film_url" value="{{ movie.movie_url }}" required>
+        <div>
+            <label class="block text-zinc-400 text-sm mb-2 font-semibold uppercase tracking-wider">Lien Vidéo (.mp4)</label>
+            <input type="text" name="film_url" value="{{ movie.movie_url }}" required class="w-full p-4 bg-zinc-800 border border-transparent rounded-lg text-white focus:outline-none focus:bg-zinc-700 focus:border-b-2 focus:border-b-primary transition-colors">
+        </div>
         
-        <button type="submit">Enregistrer les modifications</button>
+        <button type="submit" class="w-full py-4 bg-primary hover:bg-primaryHover text-white rounded-lg font-bold uppercase tracking-wider transition-colors mt-4 shadow-lg shadow-primary/20">Enregistrer les modifications</button>
     </form>
 
-    <a href="{{ url_for('add_movie') }}" class="back-link">⬅ Annuler</a>
+    <a href="{{ url_for('add_movie') }}" class="block text-center mt-8 text-zinc-400 hover:text-white transition-colors border-b border-dotted border-zinc-500 w-fit mx-auto">⬅ Annuler</a>
 </div>
 {% endblock %}

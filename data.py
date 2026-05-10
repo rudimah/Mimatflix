@@ -61,7 +61,6 @@ def scrape_imdb(url):
 
 
 def get_db_connection():
-    """Établit et retourne une nouvelle connexion à la base de données."""
     try:
         conn = mysql.connector.connect(
             host=DB_HOST,
@@ -78,10 +77,7 @@ def get_db_connection():
         elif err.errno == errorcode.ER_BAD_DB_ERROR:
             print("Erreur: La base de données n'existe pas.")
         else:
-            # Affiche l'adresse et le port réels utilisés pour le débogage
             print(f"Erreur de connexion à la base de données : {err} (Tentative sur {DB_HOST}:{DB_PORT})")
-        # En production, vous devriez logger cette erreur et peut-être arrêter l'application
-        # Pour cet exemple, nous retournons None et gérons l'absence de connexion plus tard.
         return None
 
 
@@ -111,47 +107,35 @@ def get_r2_signed_url(filename):
         return None
 
 
-def flux_mp4(url):
+def get_r2_storage_usage():
     try:
-        response = requests.get(url, impersonate="chrome110")
+        s3 = init_client_r2()
+        if not s3:
+            return 0
         
-        if response.status_code == 200:
-            soup = BeautifulSoup(response.content, 'html.parser')
-            hidden_elem = soup.find(id="norobotlink")
-            if hidden_elem:
-                link_base = hidden_elem.get_text()
-                if not link_base:
-                    return None
-                    
-                final_link = link_base + "&dl=1"
-                final_link = "https:/" + final_link
-                return final_link
+        total_size = 0
+        continuation_token = None
+        
+        while True:
+            kwargs = {'Bucket': os.environ.get("R2_BUCKET_NAME", "mes-films")}
+            if continuation_token:
+                kwargs['ContinuationToken'] = continuation_token
+                
+            response = s3.list_objects_v2(**kwargs)
+            for obj in response.get('Contents', []):
+                total_size += obj['Size']
+                
+            if not response.get('IsTruncated'):
+                break
+            continuation_token = response.get('NextContinuationToken')
             
-    except Exception:
-        return None
+        return total_size
+    except Exception as e:
+        print(f"Erreur lors du calcul du stockage R2 : {e}")
+        return 0
 
-
-def flux_mp4_v2(file_id):
-    try:
-        login = "9ed0988438a3002a07ae"
-        key = "jaG6mkw2VvhGGV"
-        response = requests.get(f"https://api.streamtape.com/file/dlticket?file={file_id}&login={login}&key={key}")
-        
-        if response.status_code == 200:
-           ticket = response.json()['result']['ticket']
-           time.sleep(5)
-           link = requests.get(f"https://api.streamtape.com/file/dl?file={file_id}&ticket={ticket}")
-           if link.status_code == 200:
-               return link.json()['result']['url']
-    except Exception:
-        return None
 
 def delete_r2_file(filename):
-    """
-    Supprime un fichier spécifique du bucket R2.
-    Retourne True si la commande a été envoyée avec succès, False sinon.
-    """
-
     print(filename)
     try:
         s3 = init_client_r2()
@@ -169,18 +153,17 @@ def delete_r2_file(filename):
         return False
     
 
-# --- Fonctions utilitaires MySQL (CRUD) ---
-
-
-def load_data():
-    """Charge tous les films depuis la base de données."""
+def load_data(limit=None):
     conn = get_db_connection()
     if not conn: return []
 
     cursor = conn.cursor(dictionary=True)
     try:
-        # Sélectionne tous les films
-        cursor.execute("SELECT id_movie, title, poster, url, movie_url FROM movie ORDER BY id_movie DESC")
+        query = "SELECT id_movie, title, poster, url, movie_url FROM movie ORDER BY id_movie DESC"
+        if limit:
+            query += f" LIMIT {int(limit)}"
+            
+        cursor.execute(query)
         movies = cursor.fetchall()
         return movies
     except Exception as e:
@@ -192,13 +175,11 @@ def load_data():
 
 
 def save_movie(movie):
-    """Ajoute un nouveau film dans la base de données."""
     conn = get_db_connection()
     if not conn: return
 
     cursor = conn.cursor()
     try:
-        # Note: id_movie est AUTO_INCREMENT, donc on ne le fournit pas
         add_movie_query = (
             "INSERT INTO movie (title, poster, url, movie_url) "
             "VALUES (%s, %s, %s, %s)"
@@ -215,7 +196,6 @@ def save_movie(movie):
 
 
 def update_movie(id_movie, movie):
-    """Met à jour un film existant en utilisant son id_movie."""
     conn = get_db_connection()
     if not conn: return
 
@@ -237,7 +217,6 @@ def update_movie(id_movie, movie):
 
 
 def delete_movie_by_id(id_movie):
-    """Supprime un film en utilisant son id_movie."""
     conn = get_db_connection()
     if not conn: return
 
@@ -260,7 +239,6 @@ def delete_movie_by_id(id_movie):
 
 
 def delete_video_by_id(id_movie):
-    """Supprime un film en utilisant son id_movie."""
     conn = get_db_connection()
     if not conn: return
 
@@ -280,7 +258,6 @@ def delete_video_by_id(id_movie):
 
 
 def get_movie_by_id(id_movie):
-    """Récupère un film unique par son id_movie."""
     conn = get_db_connection()
     if not conn: return None
 
@@ -293,9 +270,7 @@ def get_movie_by_id(id_movie):
         if "directlink" in filename:
             movie['play_url'] = filename.replace("directlink ", "")
             return movie
-        if "id" in filename:
-            movie['play_url'] = flux_mp4_v2(filename.replace("id ", ""))
-            return movie
+
         signed_url = get_r2_signed_url(filename)
         if signed_url:
             movie['play_url'] = signed_url

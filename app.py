@@ -1,5 +1,5 @@
 from flask import Flask, render_template, request, redirect, url_for, abort
-from data import scrape_imdb, load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, flux_mp4, flux_mp4_v2
+from data import scrape_imdb, load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, get_r2_storage_usage
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -10,32 +10,38 @@ app = Flask(__name__)
 
 @app.route("/")
 def index():
+    movies = load_data(limit=4)
+    return render_template("index.html", movies=movies, is_home=True)
+
+@app.route("/catalogue")
+def catalogue():
     movies = load_data()
-    return render_template("index.html", movies=movies)
+    return render_template("index.html", movies=movies, is_home=False)
 
 
 @app.route(os.environ.get("ADMIN_URL", "/ADMIN"), methods=["GET", "POST"])
 def add_movie():
     movies = load_data()
+    
+    usage_bytes = get_r2_storage_usage()
+    usage_go = round(usage_bytes / (1024**3), 2)
+    
     if request.method == "POST":
         imdb_url = request.form.get("imdb_url")
-
         url = request.form.get("film_url")
         
         try:
             movie = scrape_imdb(imdb_url)
-            if "streamtape" in url and "token" not in url:
-                movie["movie_url"] = flux_mp4(url)
-            else:
-                movie["movie_url"] = url
+     
+            movie["movie_url"] = url
             save_movie(movie)
             return redirect(url_for("add_movie"))
         except ValueError as e:
-            return render_template("admin.html", movies=movies, error=f"Erreur de scraping: {e}"), 400
+            return render_template("admin.html", movies=movies, error=f"Erreur de scraping: {e}", usage_go=usage_go), 400
         except Exception as e:
-            return render_template("admin.html", movies=movies, error=f"Erreur système: {e}"), 500
+            return render_template("admin.html", movies=movies, error=f"Erreur système: {e}", usage_go=usage_go), 500
 
-    return render_template("admin.html", movies=movies)
+    return render_template("admin.html", movies=movies, usage_go=usage_go)
 
 
 @app.route("/edit/<int:id_movie>", methods=["GET", "POST"])

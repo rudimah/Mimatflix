@@ -2,176 +2,64 @@
 
 {% block title %}Admin - Mimatflix{% endblock %}
 
-{% block styles %}
-<style>
-    .admin-container {
-        max-width: 800px;
-        margin: 0 auto;
-    }
-
-    h1, h2 { color: var(--primary); margin-bottom: 1.5rem; }
-    h2 { border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-top: 3rem; }
-
-    .form-card {
-        background: var(--bg-card);
-        padding: 2rem;
-        border-radius: var(--radius);
-        box-shadow: var(--shadow);
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    input[type="text"] {
-        width: 100%;
-        padding: 12px 15px;
-        background: #333;
-        border: 1px solid transparent;
-        border-radius: 4px;
-        color: white;
-        font-size: 1rem;
-    }
-
-    input[type="text"]:focus {
-        outline: none;
-        background: #404040;
-        border-bottom: 2px solid var(--primary);
-    }
-
-    button[type="submit"] {
-        padding: 12px 24px;
-        background: var(--primary);
-        color: white;
-        border: none;
-        border-radius: 4px;
-        font-size: 1rem;
-        font-weight: bold;
-        cursor: pointer;
-        transition: 0.2s;
-        text-transform: uppercase;
-        align-self: flex-start;
-    }
-
-    button[type="submit"]:hover { background: var(--primary-hover); }
-
-    /* Boutons de suppression - styles doux */
-    .actions button[type="submit"] {
-        text-transform: none;
-        font-size: 0.9rem;
-        padding: 6px 12px;
-    }
-
-    .admin-list {
-        list-style: none;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .admin-item {
-        background: var(--bg-card);
-        padding: 15px;
-        border-radius: 4px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    
-    .admin-item:hover { background: #2a2a2a; }
-
-    .actions {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-    }
-
-    .actions button,
-    .actions a {
-        font-size: 0.9rem;
-        padding: 6px 12px;
-        border-radius: 3px;
-        font-weight: 600;
-        border: none;
-        cursor: pointer;
-        text-decoration: none;
-        transition: 0.2s;
-        background: transparent;
-        white-space: nowrap;
-        display: inline-block;
-    }
-
-    .btn-edit { 
-        color: #4fa3ff !important; 
-        background: rgba(79, 163, 255, 0.1) !important; 
-    }
-    .btn-edit:hover { 
-        background: rgba(79, 163, 255, 0.2) !important; 
-    }
-
-    .btn-del { 
-        color: #e57373 !important; 
-        background: rgba(229, 115, 115, 0.12) !important; 
-    }
-    .btn-del:hover { 
-        background: rgba(229, 115, 115, 0.2) !important; 
-    }
-
-    .btn-del-video { 
-        color: #ffb74d !important; 
-        background: rgba(255, 183, 77, 0.12) !important; 
-    }
-    .btn-del-video:hover { 
-        background: rgba(255, 183, 77, 0.2) !important; 
-    }
-
-    @media (max-width: 500px) {
-        .admin-item { flex-direction: column; align-items: flex-start; gap: 10px; }
-        .actions { width: 100%; display: flex; justify-content: flex-end; flex-wrap: wrap; }
-        button[type="submit"] { width: 100%; }
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="admin-container">
-    <h1>Ajouter un film</h1>
+<div class="max-w-3xl mx-auto space-y-10">
     
-    {% if error %}
-    <div style="background: rgba(229,9,20,0.2); color: #ff4f4f; padding: 15px; border-radius: 4px; margin-bottom: 20px; border-left: 3px solid var(--primary);">
-        {{ error }}
-    </div>
-    {% endif %}
-
-    <form method="POST" class="form-card">
-        <input type="text" name="imdb_url" placeholder="Lien IMDb du film" required>
-        <input type="text" name="film_url" placeholder="Lien direct du fichier vidéo (.mp4)" required>
-        <button type="submit">Ajouter</button>
-    </form>
-
-    <h2>Bibliothèque</h2>
-    <ul class="admin-list">
-        {% for movie in movies %}
-            <li class="admin-item">
-                <span class="title">{{ movie.title }}</span>
-                <div class="actions">
-                    <a href="{{ url_for('edit_movie', id_movie=movie.id_movie) }}" class="btn-edit">Modifier</a>
-                    
-                    <form method="POST" action="{{ url_for('delete_video', id_movie=movie.id_movie) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Supprimer la vidéo uniquement ?')">
-                        <input type="hidden" name="_method" value="DELETE">
-                        <button type="submit" class="btn-del-video">Suppr. Vidéo</button>
-                    </form>
-                    
-                    <form method="POST" action="{{ url_for('delete_movie', id_movie=movie.id_movie) }}" style="display: inline; margin: 0;" onsubmit="return confirm('Supprimer définitivement ce film ?')">
-                        <input type="hidden" name="_method" value="DELETE">
-                        <button type="submit" class="btn-del">Suppr. Film</button>
-                    </form>
+    <div class="bg-bgCard p-6 sm:p-8 rounded-xl shadow-lg border border-white/5">
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+            <h1 class="text-2xl font-bold text-primary">Ajouter un film</h1>
+            <div class="sm:text-right bg-zinc-900/50 p-4 rounded-lg border border-white/5 w-full sm:w-auto">
+                <p class="text-sm text-zinc-400 mb-2 font-semibold">Stockage R2 Cloudflare</p>
+                <div class="w-full sm:w-48 bg-zinc-800 rounded-full h-2.5 overflow-hidden mb-1">
+                    {% set percentage = (usage_go / 10) * 100 %}
+                    <div class="bg-primary h-2.5 rounded-full transition-all duration-500" style="width: {{ percentage if percentage <= 100 else 100 }}%"></div>
                 </div>
-            </li>
-        {% endfor %}
-    </ul>
+                <div class="flex justify-between sm:block text-xs text-zinc-400">
+                    <span>{{ usage_go }} Go utilisés</span>
+                    <span class="sm:hidden">10 Go max</span>
+                </div>
+            </div>
+        </div>
+        
+        {% if error %}
+        <div class="bg-red-900/20 text-red-400 p-4 rounded-lg mb-6 border-l-4 border-primary font-medium">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" class="flex flex-col gap-4">
+            <input type="text" name="imdb_url" placeholder="Lien IMDb du film" required class="w-full p-4 bg-zinc-800 border border-transparent rounded-lg text-white focus:outline-none focus:bg-zinc-700 focus:border-b-2 focus:border-b-primary transition-colors">
+            <input type="text" name="film_url" placeholder="Lien direct du fichier vidéo (.mp4)" required class="w-full p-4 bg-zinc-800 border border-transparent rounded-lg text-white focus:outline-none focus:bg-zinc-700 focus:border-b-2 focus:border-b-primary transition-colors">
+            <button type="submit" class="self-start px-8 py-3 bg-primary hover:bg-primaryHover text-white rounded-lg font-bold uppercase tracking-wider transition-colors mt-2 shadow-lg shadow-primary/20">Ajouter le film</button>
+        </form>
+    </div>
+
+    <div class="bg-bgCard p-6 sm:p-8 rounded-xl shadow-lg border border-white/5">
+        <h2 class="text-xl font-bold text-white border-b border-white/10 pb-4 mb-6">Bibliothèque</h2>
+        <ul class="flex flex-col gap-3">
+            {% for movie in movies %}
+                <li class="bg-zinc-900/50 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:bg-zinc-800 transition-colors border border-white/5">
+                    <span class="font-semibold text-white truncate max-w-full">{{ movie.title }}</span>
+                    <div class="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                        <a href="{{ url_for('edit_movie', id_movie=movie.id_movie) }}" class="text-sm px-4 py-2 rounded text-blue-400 bg-blue-400/10 hover:bg-blue-400/20 font-semibold transition-colors whitespace-nowrap">Modifier</a>
+                        
+                        <form method="POST" action="{{ url_for('delete_video', id_movie=movie.id_movie) }}" class="inline m-0" onsubmit="return confirm('Supprimer la vidéo uniquement ?')">
+                            <input type="hidden" name="_method" value="DELETE">
+                            <button type="submit" class="text-sm px-4 py-2 rounded text-orange-400 bg-orange-400/10 hover:bg-orange-400/20 font-semibold transition-colors whitespace-nowrap">Suppr. Vidéo</button>
+                        </form>
+                        
+                        <form method="POST" action="{{ url_for('delete_movie', id_movie=movie.id_movie) }}" class="inline m-0" onsubmit="return confirm('Supprimer définitivement ce film ?')">
+                            <input type="hidden" name="_method" value="DELETE">
+                            <button type="submit" class="text-sm px-4 py-2 rounded text-red-400 bg-red-400/10 hover:bg-red-400/20 font-semibold transition-colors whitespace-nowrap">Suppr. Film</button>
+                        </form>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
     
-    <p style="margin-top: 30px; text-align: center;">
-        <a href="{{ url_for('index') }}" style="color: var(--text-muted); border-bottom: 1px dotted;">⬅ Retour au site</a>
+    <p class="text-center pb-8">
+        <a href="{{ url_for('index') }}" class="text-zinc-400 hover:text-white border-b border-dotted border-zinc-500 transition-colors">⬅ Retour au site</a>
     </p>
 </div>
 {% endblock %}
