@@ -36,7 +36,7 @@
 
     <div class="relative rounded-xl overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.5)] bg-black min-h-[300px] md:min-h-[500px] flex items-center justify-center group" id="videoContainer">
         
-        <div id="videoLoader" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md transition-opacity duration-300">
+       <div id="videoLoader" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md transition-opacity duration-300 pointer-events-none">
             <div class="w-16 h-16 border-4 border-zinc-700 border-t-primary rounded-full animate-spin"></div>
             <p class="mt-4 text-zinc-300 font-medium animate-pulse tracking-wide">Chargement du film...</p>
         </div>
@@ -44,7 +44,7 @@
         <div id="seekFeedback" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl text-white/90 bg-black/60 px-6 py-4 rounded-full pointer-events-none opacity-0 transition-all z-20 font-bold scale-90"></div>
         <div id="resumeToast" class="absolute top-5 right-5 bg-green-600/95 text-white px-6 py-3 rounded-lg font-semibold z-30 translate-x-[150%] transition-transform duration-500 shadow-xl">Lecture reprise</div>
 
-        <video id="player" playsinline controls crossorigin class="w-full">
+        <video id="player" playsinline controls crossorigin preload="metadata" class="w-full">
             <source src="{{ movie.play_url if movie.play_url else '' }}" type="video/mp4" />
         </video>
     </div>
@@ -68,6 +68,11 @@
             seekTime: 10, 
             keyboard: { focused: true, global: true },
             fullscreen: { enabled: true, fallback: true, iosNative: true } 
+        });
+
+        // Gestion du loader : on l'enlève seulement si la vidéo commence vraiment à jouer
+        player.on('ready', () => {
+        if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
         });
 
         // Gestion du loader : on l'enlève seulement si la vidéo commence vraiment à jouer

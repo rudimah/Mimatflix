@@ -9,7 +9,7 @@
             <h2 class="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
                 {% if is_home %}🍿 Derniers ajouts{% else %}📂 Catalogue complet{% endif %}
             </h2>
-            <p class="text-zinc-500 mt-2">{% if is_home %}Les 4 pépites du moment à ne pas rater.{% else %}Explorez l'intégralité de votre bibliothèque.{% endif %}</p>
+            <p class="text-zinc-500 mt-2">{% if is_home %}{% else %}Explorez l'intégralité de votre bibliothèque.{% endif %}</p>
         </div>
         {% if is_home %}
         <a href="{{ url_for('catalogue') }}" class="text-primary hover:text-white font-bold transition-colors flex items-center gap-2 group">
