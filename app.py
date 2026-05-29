@@ -1,5 +1,5 @@
-from flask import Flask, render_template, request, redirect, url_for, abort
-from data import scrape_imdb, load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, get_r2_storage_usage
+from flask import Flask, jsonify, render_template, request, redirect, url_for, abort
+from data import scrape_imdb, load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, get_r2_storage_usage, get_pending_downloads, add_pending_movie, complete_movie_download
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -22,26 +22,54 @@ def catalogue():
 @app.route(os.environ.get("ADMIN_URL", "/ADMIN"), methods=["GET", "POST"])
 def add_movie():
     movies = load_data()
+    pending_movies = get_pending_downloads() # Pour afficher les téléchargements en cours
     
     usage_bytes = get_r2_storage_usage()
     usage_go = round(usage_bytes / (1024**3), 2)
     
     if request.method == "POST":
+        action = request.form.get("action")
         imdb_url = request.form.get("imdb_url")
-        url = request.form.get("film_url")
         
         try:
             movie = scrape_imdb(imdb_url)
-     
-            movie["movie_url"] = url
-            save_movie(movie)
+            
+            if action == "pending":
+                source_link = request.form.get("source_link")
+                add_pending_movie(movie, source_link)
+            else:
+                url = request.form.get("film_url")
+                movie["movie_url"] = url
+                save_movie(movie)
+                
             return redirect(url_for("add_movie"))
         except ValueError as e:
-            return render_template("admin.html", movies=movies, error=f"Erreur de scraping: {e}", usage_go=usage_go), 400
+            return render_template("admin.html", movies=movies, pending=pending_movies, error=f"Erreur de scraping: {e}", usage_go=usage_go), 400
         except Exception as e:
-            return render_template("admin.html", movies=movies, error=f"Erreur système: {e}", usage_go=usage_go), 500
+            return render_template("admin.html", movies=movies, pending=pending_movies, error=f"Erreur système: {e}", usage_go=usage_go), 500
 
-    return render_template("admin.html", movies=movies, usage_go=usage_go)
+    return render_template("admin.html", movies=movies, pending=pending_movies, usage_go=usage_go)
+
+
+@app.route("/api/downloads/pending", methods=["GET"])
+def api_get_pending():
+    """L'API appelée par votre script pour voir ce qu'il faut télécharger"""
+    pending = get_pending_downloads()
+    return jsonify(pending), 200
+
+@app.route("/api/downloads/complete", methods=["POST"])
+def api_complete_download():
+    """L'API appelée par votre script quand le téléchargement/upload est terminé"""
+    data = request.get_json()
+    
+    id_movie = data.get('id_movie')
+    filename = data.get('filename') # Le nom du fichier sur R2
+    
+    if not id_movie or not filename:
+        return jsonify({"error": "id_movie et filename sont requis"}), 400
+        
+    complete_movie_download(id_movie, filename)
+    return jsonify({"message": "Film mis à jour avec succès", "id_movie": id_movie}), 200
 
 
 @app.route("/edit/<int:id_movie>", methods=["GET", "POST"])
@@ -56,10 +84,8 @@ def edit_movie(id_movie):
         
         try:
             updated_movie_details = scrape_imdb(imdb_url)
-            if "streamtape" in url and "token" not in url:
-                updated_movie_details["movie_url"] = flux_mp4(url)    
-            else:
-                updated_movie_details["movie_url"] = url
+
+            updated_movie_details["movie_url"] = url
 
             update_movie(id_movie, updated_movie_details)
             return redirect(url_for("add_movie"))

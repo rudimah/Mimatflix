@@ -2,10 +2,8 @@ import mysql.connector
 from mysql.connector import errorcode
 import os
 import boto3
-import time
 from botocore.client import Config
 from curl_cffi import requests
-from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -153,13 +151,61 @@ def delete_r2_file(filename):
         return False
     
 
+def add_pending_movie(movie, source_link):
+    conn = get_db_connection()
+    if not conn: return
+
+    cursor = conn.cursor()
+    try:
+        query = (
+            "INSERT INTO movie (title, poster, url, source_link, status) "
+            "VALUES (%s, %s, %s, %s, 'pending')"
+        )
+        cursor.execute(query, (movie["title"], movie["poster"], movie["url"], source_link))
+        conn.commit()
+    except Exception as e:
+        print(f"Erreur lors de l'ajout en attente : {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+
+def get_pending_downloads():
+    conn = get_db_connection()
+    if not conn: return []
+
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id_movie, title, source_link FROM movie WHERE status = 'pending'")
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        conn.close()
+
+def complete_movie_download(id_movie, filename):
+    conn = get_db_connection()
+    if not conn: return
+
+    cursor = conn.cursor()
+    try:
+        query = "UPDATE movie SET movie_url = %s, status = 'available' WHERE id_movie = %s"
+        cursor.execute(query, (filename, id_movie))
+        conn.commit()
+    except Exception as e:
+        print(f"Erreur de mise à jour du téléchargement : {e}")
+        conn.rollback()
+    finally:
+        cursor.close()
+        conn.close()
+            
+
 def load_data(limit=None):
     conn = get_db_connection()
     if not conn: return []
 
     cursor = conn.cursor(dictionary=True)
     try:
-        query = "SELECT id_movie, title, poster, url, movie_url FROM movie ORDER BY id_movie DESC"
+        query = "SELECT id_movie, title, poster, url, movie_url FROM movie WHERE status = 'available' OR status IS NULL ORDER BY id_movie DESC"
         if limit:
             query += f" LIMIT {int(limit)}"
             
