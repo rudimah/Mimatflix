@@ -6,53 +6,60 @@
 <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
 <style>
     :root { --plyr-color-main: #e50914; }
+    .plyr { width: 100%; height: 100%; border-radius: 1rem; overflow: hidden; }
     .plyr--fullscreen-active .plyr__video-wrapper { height: 100vh; height: 100dvh; }
     .plyr--fullscreen-active { z-index: 99999 !important; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="mb-8">
-    <h2 class="text-3xl md:text-4xl font-extrabold flex items-center justify-center lg:justify-start gap-4 flex-wrap">
+<div class="mb-10">
+    <h2 class="text-3xl md:text-5xl font-extrabold flex items-center justify-center lg:justify-start gap-4 flex-wrap text-slate-900 dark:text-white">
         {{ movie.title }}
-        <a href="{{movie.url}}" target="_blank" class="transition-transform hover:scale-110">
+        <a href="{{movie.url}}" target="_blank" class="transition-transform hover:scale-110 bg-slate-100 dark:bg-transparent p-2 dark:p-0 rounded-lg">
             <img src="{{ url_for('static', filename='imdb.svg') }}" alt="Imdb" class="h-8 md:h-10 w-auto">
         </a>
     </h2>
 </div>
 
-<div class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-8 items-start">
+<div class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10 items-start">
     
-    <div class="flex flex-col items-center max-w-[250px] lg:max-w-none mx-auto lg:mx-0 w-full">
+    <div class="flex flex-col items-center max-w-[250px] lg:max-w-none mx-auto lg:mx-0 w-full space-y-4">
         {% if movie.poster %}
-        <div class="w-full rounded-xl overflow-hidden shadow-2xl mb-4 border border-white/5">
+        <div class="w-full rounded-2xl overflow-hidden shadow-xl dark:shadow-2xl mb-2 border border-slate-200 dark:border-white/5 relative">
             <img src="{{ movie.poster }}" alt="Affiche de {{ movie.title }}" class="w-full h-auto block">
         </div>
         {% endif %}
-        <button onclick="window.history.back()" class="w-full py-3 bg-white/10 hover:bg-white/20 rounded-lg text-center font-semibold transition-colors cursor-pointer">
-            ⬅ Retour
+        <button onclick="window.history.back()" class="w-full py-4 bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 rounded-xl text-center font-bold text-slate-700 dark:text-white transition-colors cursor-pointer shadow-sm">
+            ⬅ Retour au catalogue
         </button>
     </div>
 
-    <div class="relative rounded-xl overflow-hidden shadow-[0_15px_40px_rgba(0,0,0,0.5)] bg-black min-h-[300px] md:min-h-[500px] flex items-center justify-center group" id="videoContainer">
+    <div class="relative rounded-2xl w-full aspect-video shadow-2xl bg-zinc-950 flex items-center justify-center group overflow-hidden border border-slate-800 dark:border-white/5" id="videoContainer">
         
-       <div id="videoLoader" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-md transition-opacity duration-300 pointer-events-none">
-            <div class="w-16 h-16 border-4 border-zinc-700 border-t-primary rounded-full animate-spin"></div>
-            <p class="mt-4 text-zinc-300 font-medium animate-pulse tracking-wide">Chargement du film...</p>
-        </div>
+        {% if movie.download %}
+            <div id="seekFeedback" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl text-white/90 bg-black/60 px-6 py-4 rounded-full pointer-events-none opacity-0 transition-all z-20 font-bold scale-90 backdrop-blur-sm"></div>
+            <div id="resumeToast" class="absolute top-5 right-5 bg-green-500/95 text-white px-6 py-3 rounded-xl font-bold z-30 translate-x-[150%] transition-transform duration-500 shadow-xl border border-green-400">Lecture reprise</div>
 
-        <div id="seekFeedback" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl text-white/90 bg-black/60 px-6 py-4 rounded-full pointer-events-none opacity-0 transition-all z-20 font-bold scale-90"></div>
-        <div id="resumeToast" class="absolute top-5 right-5 bg-green-600/95 text-white px-6 py-3 rounded-lg font-semibold z-30 translate-x-[150%] transition-transform duration-500 shadow-xl">Lecture reprise</div>
+            <video id="player" playsinline controls crossorigin preload="metadata" class="w-full h-full object-contain">
+                <source src="{{ movie.play_url if movie.play_url else '' }}" type="video/mp4" />
+            </video>
+        {% else %}
+            <div class="flex flex-col items-center justify-center text-center p-8 bg-zinc-900 w-full h-full">
+                <span class="text-6xl mb-6">📥</span>
+                <h3 class="text-2xl font-bold text-white mb-3">Film non disponible</h3>
+                <p class="text-zinc-400 max-w-md">Ce film fait partie de votre catalogue mais la vidéo n'est pas encore téléchargée ou aucune source n'a été spécifiée.</p>
+            </div>
+        {% endif %}
 
-        <video id="player" playsinline controls crossorigin preload="metadata" class="w-full">
-            <source src="{{ movie.play_url if movie.play_url else '' }}" type="video/mp4" />
-        </video>
     </div>
 
 </div>
 
+{% if movie.download %}
 <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
 <script>
+    // Le script reste identique, il gère très bien le lecteur Plyr
     document.addEventListener('DOMContentLoaded', () => {
         const videoElement = document.getElementById('player');
         if (!videoElement) return;
@@ -60,36 +67,15 @@
         const STORAGE_KEY = "video_progress_{{ movie.title | replace(' ', '_') | lower }}";
         const feedbackEl = document.getElementById('seekFeedback');
         const resumeToast = document.getElementById('resumeToast');
-        const loader = document.getElementById('videoLoader');
 
-        // Initialisation de Plyr
         const player = new Plyr('#player', {
             controls: ['play-large', 'restart', 'rewind', 'play', 'fast-forward', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'pip', 'fullscreen'],
             seekTime: 10, 
             keyboard: { focused: true, global: true },
-            fullscreen: { enabled: true, fallback: true, iosNative: true } 
+            fullscreen: { enabled: true, fallback: true, iosNative: true },
+            ratio: '16:9'
         });
 
-        // Gestion du loader : on l'enlève seulement si la vidéo commence vraiment à jouer
-        player.on('ready', () => {
-        if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
-        });
-
-        // Gestion du loader : on l'enlève seulement si la vidéo commence vraiment à jouer
-        player.on('playing', () => {
-            if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
-        });
-        player.on('canplay', () => {
-            if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
-        });
-        player.on('waiting', () => {
-            if(loader) loader.classList.remove('opacity-0', 'pointer-events-none');
-        });
-        if (videoElement.readyState >= 3) {
-            if(loader) loader.classList.add('opacity-0', 'pointer-events-none');
-        }
-
-        // Formatage du temps pour le toast de reprise
         function formatTime(seconds) {
             const h = Math.floor(seconds / 3600);
             const m = Math.floor((seconds % 3600) / 60);
@@ -98,7 +84,6 @@
             return `${m}:${s < 10 ? '0' : ''}${s}`;
         }
 
-        // Reprise de la lecture
         player.on('loadedmetadata', () => {
             const savedTime = localStorage.getItem(STORAGE_KEY);
             if (savedTime && parseFloat(savedTime) > 5) {
@@ -112,14 +97,12 @@
             }
         });
 
-        // Sauvegarde de la progression
         player.on('timeupdate', () => {
             if (player.playing && player.currentTime > 0) {
                 localStorage.setItem(STORAGE_KEY, player.currentTime);
             }
         });
 
-        // Double-clic pour avancer/reculer de 10s
         const wrapper = document.querySelector('.plyr'); 
         if(wrapper) {
             let lastClickTime = 0;
@@ -153,4 +136,5 @@
         }
     });
 </script>
+{% endif %}
 {% endblock %}
