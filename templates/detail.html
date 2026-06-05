@@ -1,65 +1,94 @@
+<!-- templates/detail.html -->
 {% extends "base.html" %}
-
 {% block title %}{{ movie.title }}{% endblock %}
-
 {% block styles %}
 <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
 <style>
     :root { --plyr-color-main: #e50914; }
-    .plyr { width: 100%; height: 100%; border-radius: 1rem; overflow: hidden; }
+    .plyr { width: 100%; height: 100%; border-radius: 1rem; overflow: hidden; background: #000; }
     .plyr--fullscreen-active .plyr__video-wrapper { height: 100vh; height: 100dvh; }
     .plyr--fullscreen-active { z-index: 99999 !important; }
 </style>
 {% endblock %}
-
 {% block content %}
-<div class="mb-10">
-    <h2 class="text-3xl md:text-5xl font-extrabold flex items-center justify-center lg:justify-start gap-4 flex-wrap text-slate-900 dark:text-white">
-        {{ movie.title }}
-        <a href="{{movie.url}}" target="_blank" class="transition-transform hover:scale-110 bg-slate-100 dark:bg-transparent p-2 dark:p-0 rounded-lg">
-            <img src="{{ url_for('static', filename='imdb.svg') }}" alt="Imdb" class="h-8 md:h-10 w-auto">
-        </a>
-    </h2>
-</div>
-
-<div class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-10 items-start">
-    
-    <div class="flex flex-col items-center max-w-[250px] lg:max-w-none mx-auto lg:mx-0 w-full space-y-4">
-        {% if movie.poster %}
-        <div class="w-full rounded-2xl overflow-hidden shadow-xl dark:shadow-2xl mb-2 border border-slate-200 dark:border-white/5 relative">
-            <img src="{{ movie.poster }}" alt="Affiche de {{ movie.title }}" class="w-full h-auto block">
-        </div>
-        {% endif %}
-        <button onclick="window.history.back()" class="w-full py-4 bg-slate-200 hover:bg-slate-300 dark:bg-white/10 dark:hover:bg-white/20 rounded-xl text-center font-bold text-slate-700 dark:text-white transition-colors cursor-pointer shadow-sm">
-            ⬅ Retour au catalogue
-        </button>
-    </div>
-
-    <div class="relative rounded-2xl w-full aspect-video shadow-2xl bg-zinc-950 flex items-center justify-center group overflow-hidden border border-slate-800 dark:border-white/5" id="videoContainer">
+<div class="max-w-7xl mx-auto animate-fade-in">
+    <div class="mb-10 lg:mb-16">
+        <h2 class="text-4xl md:text-5xl lg:text-6xl font-extrabold flex items-center justify-center lg:justify-start gap-4 flex-wrap text-zinc-900 dark:text-white tracking-tight">
+            {{ movie.title }}
+            <a href="{{movie.url}}" target="_blank" class="transition-transform hover:scale-110 bg-zinc-100 dark:bg-transparent p-2 dark:p-0 rounded-xl hover:shadow-lg dark:hover:shadow-none">
+                <img src="{{ url_for('static', filename='imdb.svg') }}" alt="Imdb" class="h-10 md:h-12 w-auto">
+            </a>
+        </h2>
         
-        {% if movie.download %}
-            <div id="seekFeedback" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl text-white/90 bg-black/60 px-6 py-4 rounded-full pointer-events-none opacity-0 transition-all z-20 font-bold scale-90 backdrop-blur-sm"></div>
-            <div id="resumeToast" class="absolute top-5 right-5 bg-green-500/95 text-white px-6 py-3 rounded-xl font-bold z-30 translate-x-[150%] transition-transform duration-500 shadow-xl border border-green-400">Lecture reprise</div>
-
-            <video id="player" playsinline controls crossorigin preload="metadata" class="w-full h-full object-contain">
-                <source src="{{ movie.play_url if movie.play_url else '' }}" type="video/mp4" />
-            </video>
-        {% else %}
-            <div class="flex flex-col items-center justify-center text-center p-8 bg-zinc-900 w-full h-full">
-                <span class="text-6xl mb-6">📥</span>
-                <h3 class="text-2xl font-bold text-white mb-3">Film non disponible</h3>
-                <p class="text-zinc-400 max-w-md">Ce film fait partie de votre catalogue mais la vidéo n'est pas encore téléchargée ou aucune source n'a été spécifiée.</p>
-            </div>
-        {% endif %}
-
+        <div class="mt-6 flex justify-center lg:justify-start">
+            {% if movie.status == 'available' and movie.play_url %}
+                <span class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-sm font-bold px-4 py-1.5 rounded-full flex items-center gap-2">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full"></span> Disponible pour la lecture
+                </span>
+            {% elif movie.status == 'deleted' or not movie.play_url %}
+                <span class="bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-sm font-bold px-4 py-1.5 rounded-full flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    Vidéo indisponible
+                </span>
+            {% elif movie.status == 'pending' %}
+                <span class="bg-blue-500/10 border border-blue-500/20 text-blue-600 dark:text-blue-400 text-sm font-bold px-4 py-1.5 rounded-full flex items-center gap-2">
+                    <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Téléchargement en cours
+                </span>
+            {% endif %}
+        </div>
     </div>
 
+    <div class="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-10 lg:gap-16 items-start">
+        
+        <div class="flex flex-col items-center max-w-[280px] lg:max-w-none mx-auto lg:mx-0 w-full space-y-6">
+            {% if movie.poster %}
+            <div class="w-full rounded-3xl overflow-hidden shadow-2xl ring-1 ring-zinc-200 dark:ring-white/10 relative">
+                <img src="{{ movie.poster }}" alt="Affiche de {{ movie.title }}" class="w-full h-auto block">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+            </div>
+            {% endif %}
+            <button onclick="window.location.href='{{ url_for('catalogue') }}'" class="w-full py-4 bg-zinc-200 hover:bg-zinc-300 dark:bg-zinc-800 dark:hover:bg-zinc-700 rounded-2xl text-center font-bold text-zinc-800 dark:text-zinc-200 transition-all cursor-pointer shadow-sm flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+                Retour au catalogue
+            </button>
+        </div>
+
+        <div class="relative rounded-3xl w-full aspect-video shadow-2xl bg-zinc-950 flex items-center justify-center group overflow-hidden ring-1 ring-zinc-800" id="videoContainer">
+            
+            {% if movie.status == 'available' and movie.play_url %}
+                <div id="seekFeedback" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl text-white bg-black/70 px-8 py-5 rounded-full pointer-events-none opacity-0 transition-all duration-300 z-20 font-black scale-90 backdrop-blur-md shadow-2xl"></div>
+                <div id="resumeToast" class="absolute top-6 right-6 bg-emerald-500/95 text-white px-6 py-4 rounded-2xl font-bold z-30 translate-x-[150%] transition-transform duration-500 shadow-2xl border border-emerald-400 backdrop-blur-sm flex items-center gap-3">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    Lecture reprise
+                </div>
+                <video id="player" playsinline controls crossorigin preload="metadata" class="w-full h-full object-contain">
+                    <source src="{{ movie.play_url }}" type="video/mp4" />
+                </video>
+            {% elif movie.status == 'deleted' or not movie.play_url %}
+                <div class="flex flex-col items-center justify-center text-center p-10 bg-zinc-900 w-full h-full">
+                    <div class="w-24 h-24 bg-rose-500/10 rounded-full flex items-center justify-center mb-6">
+                        <svg class="w-12 h-12 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </div>
+                    <h3 class="text-3xl font-extrabold text-white mb-4">Film Non Disponible</h3>
+                    <p class="text-zinc-400 max-w-md text-lg">La vidéo associée à ce titre a été supprimée ou n'a pas encore été rattachée. Seules les informations de catalogue sont conservées.</p>
+                </div>
+            {% else %}
+                <div class="flex flex-col items-center justify-center text-center p-10 bg-zinc-900 w-full h-full">
+                    <div class="w-24 h-24 bg-blue-500/10 rounded-full flex items-center justify-center mb-6">
+                        <svg class="w-12 h-12 text-blue-500 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    </div>
+                    <h3 class="text-3xl font-extrabold text-white mb-4">Bientôt Disponible</h3>
+                    <p class="text-zinc-400 max-w-md text-lg">Le fichier vidéo est actuellement en cours de préparation ou de téléchargement.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
-{% if movie.download %}
+{% if movie.status == 'available' and movie.play_url %}
 <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
 <script>
-    // Le script reste identique, il gère très bien le lecteur Plyr
     document.addEventListener('DOMContentLoaded', () => {
         const videoElement = document.getElementById('player');
         if (!videoElement) return;
@@ -90,7 +119,7 @@
                 const time = parseFloat(savedTime);
                 player.currentTime = time;
                 if(resumeToast) {
-                    resumeToast.innerText = "Reprise à " + formatTime(time) + " ↺";
+                    resumeToast.innerHTML = `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> Reprise à ${formatTime(time)}`;
                     resumeToast.classList.remove('translate-x-[150%]');
                     setTimeout(() => resumeToast.classList.add('translate-x-[150%]'), 4000);
                 }
@@ -109,13 +138,16 @@
             wrapper.addEventListener('click', (e) => {
                 const currentTime = new Date().getTime();
                 const timeDiff = currentTime - lastClickTime;
+
                 if (timeDiff < 300 && timeDiff > 0) {
                     e.preventDefault(); e.stopImmediatePropagation(); 
                     const rect = wrapper.getBoundingClientRect();
                     const x = e.clientX - rect.left; 
                     const width = rect.width;
+
                     if (x < width * 0.35) { player.rewind(10); showFeedback('⏪ -10s'); } 
                     else if (x > width * 0.65) { player.forward(10); showFeedback('+10s ⏩'); }
+                    
                     lastClickTime = 0; 
                 } else lastClickTime = currentTime;
             }, true);

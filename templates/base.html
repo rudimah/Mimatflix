@@ -1,69 +1,87 @@
 <!DOCTYPE html>
-<html lang="fr" class="antialiased">
+<html lang="fr" class="antialiased dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Mimatflix{% endblock %}</title>
     <link rel="icon" href="{{ url_for('static', filename='favicon.jpg') }}" type="image/jpg">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
                     colors: {
                         primary: '#e50914',
                         primaryHover: '#f40612',
-                        bgCard: '#1f1f1f',
+                        bgCard: '#18181b',
+                        bgBase: '#09090b',
                     }
                 }
             }
         }
-        // Script pour éviter le "flash" visuel au chargement
-        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
     </script>
     {% block styles %}{% endblock %}
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 0, 0, 0.05);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .dark .glass-panel {
+            background: rgba(24, 24, 27, 0.65);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: none;
+        }
+    </style>
 </head>
-<body class="min-h-screen flex flex-col pt-20 bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-white transition-colors duration-300">
+<body class="min-h-screen flex flex-col pt-24 bg-slate-50 dark:bg-bgBase text-slate-900 dark:text-zinc-100 transition-colors duration-300 selection:bg-primary selection:text-white">
     
-    <header class="fixed top-0 w-full bg-white/80 dark:bg-zinc-950/80 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-6 py-4 z-50 flex items-center justify-between shadow-sm dark:shadow-none transition-colors duration-300">
-        <h1 class="text-primary font-extrabold text-2xl uppercase tracking-wider">
-            <a href="{{ url_for('index') }}" class="hover:text-primaryHover transition-colors">🎬 Mimatflix</a>
+    <header class="fixed top-0 w-full glass-panel z-50 flex items-center justify-between px-6 py-4 transition-colors duration-300">
+        <h1 class="text-primary font-black text-2xl uppercase tracking-widest flex items-center gap-2">
+            <a href="{{ url_for('index') }}" class="hover:scale-105 transition-transform duration-300 flex items-center gap-2">
+                <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z"/></svg>
+                Mimatflix
+            </a>
         </h1>
-        <nav class="flex items-center gap-4 sm:gap-6">
-            <a href="{{ url_for('index') }}" class="text-sm sm:text-base text-slate-600 dark:text-zinc-300 hover:text-primary dark:hover:text-white font-semibold transition-colors">Accueil</a>
-            <a href="{{ url_for('catalogue') }}" class="text-sm sm:text-base text-slate-600 dark:text-zinc-300 hover:text-primary dark:hover:text-white font-semibold transition-colors">Catalogue</a>
+        <nav class="flex items-center gap-6">
+            <a href="{{ url_for('index') }}" class="text-sm sm:text-base text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-white font-bold transition-colors">Accueil</a>
+            <a href="{{ url_for('catalogue') }}" class="text-sm sm:text-base text-zinc-700 dark:text-zinc-300 hover:text-primary dark:hover:text-white font-bold transition-colors">Catalogue</a>
             
-            <button id="theme-toggle" class="p-2 rounded-full bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-yellow-400 hover:bg-slate-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none">
-                <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
-                <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+            <button id="theme-toggle" class="p-2.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-yellow-400 hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-colors focus:outline-none shadow-sm dark:shadow-none">
+                <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+                <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
             </button>
         </nav>
     </header>
 
-    <main class="flex-grow w-full mx-auto px-4 sm:px-6 md:px-12 lg:px-20 py-8">
+    <main class="flex-grow w-full max-w-screen-2xl mx-auto px-4 sm:px-6 md:px-10 lg:px-16 py-8 relative">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-primary/10 dark:bg-primary/20 blur-[120px] rounded-full pointer-events-none -z-10 transition-colors duration-500"></div>
         {% block content %}{% endblock %}
     </main>
     
-    <footer class="mt-auto py-6 border-t border-slate-200 dark:border-white/5 text-center text-slate-500 dark:text-zinc-600 text-sm transition-colors duration-300">
-        <p>Mimatflix &copy; {{ current_year | default(2026) }}</p>
+    <footer class="mt-auto py-8 border-t border-zinc-200 dark:border-white/5 text-center text-zinc-500 dark:text-zinc-600 text-sm transition-colors duration-300">
+        <p class="font-medium tracking-wide">Mimatflix &copy; {{ current_year | default(2026) }}</p>
     </footer>
 
     <script defer src="/_vercel/insights/script.js"></script>
-
     <script>
-        // Logique du bouton Light/Dark Mode
         var themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
         var themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
 
         if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             themeToggleLightIcon.classList.remove('hidden');
+            document.documentElement.classList.add('dark');
         } else {
             themeToggleDarkIcon.classList.remove('hidden');
+            document.documentElement.classList.remove('dark');
         }
 
         var themeToggleBtn = document.getElementById('theme-toggle');

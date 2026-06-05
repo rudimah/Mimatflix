@@ -1,15 +1,15 @@
+# app.py
 from flask import Flask, jsonify, render_template, request, redirect, url_for, abort
 from data import scrape_imdb, load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, get_r2_storage_usage, get_pending_downloads, get_api_pending_downloads, add_pending_movie, complete_movie_download
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-
 app = Flask(__name__)
 
 @app.route("/")
 def index():
-    movies = load_data(limit=4)
+    movies = load_data(limit=6)
     return render_template("index.html", movies=movies, is_home=True)
 
 @app.route("/catalogue")
@@ -76,11 +76,13 @@ def edit_movie(id_movie):
         imdb_url = request.form.get("imdb_url")
         url = request.form.get("film_url")
         source_link = request.form.get("source_link")
+        status = request.form.get("status")
         
         try:
             updated_movie_details = scrape_imdb(imdb_url)
             updated_movie_details["movie_url"] = url
             updated_movie_details["source_link"] = source_link
+            updated_movie_details["status"] = status
             
             update_movie(id_movie, updated_movie_details)
             return redirect(url_for("add_movie"))
@@ -105,8 +107,8 @@ def delete_video(id_movie):
 def movie_detail(id_movie):
     movie = get_movie_by_id(id_movie)
     if movie is None:
-        abort(404) 
-
+        abort(404)
+        
     return render_template("detail.html", movie=movie)
 
 if __name__ == "__main__":
