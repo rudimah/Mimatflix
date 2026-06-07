@@ -1,6 +1,4 @@
-# data.py
 import mysql.connector
-from mysql.connector import errorcode
 import os
 import boto3
 from botocore.client import Config
@@ -14,6 +12,16 @@ DB_PASSWORD = os.environ.get("DB_PASSWORD", "password")
 DB_DATABASE = os.environ.get("DB_DATABASE", "defaultdb")
 DB_PORT = int(os.environ.get("DB_PORT", 3306))
 
+dbconfig = {
+    "host": DB_HOST,
+    "user": DB_USER,
+    "password": DB_PASSWORD,
+    "database": DB_DATABASE,
+    "port": DB_PORT,
+    "ssl_ca": "ca.pem",
+    "connect_timeout": 5
+}
+
 def scrape_imdb(url):
     BASE_URL = "https://caching.graphql.imdb.com/"
     for elem in url.split("/"):
@@ -25,7 +33,7 @@ def scrape_imdb(url):
         "content-type": "application/json",
         "origin": "https://www.imdb.com",
         "referer": "https://www.imdb.com/",
-        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
         "x-imdb-client-name": "imdb-web-next-localized",
         "x-imdb-client-version": "1.0.0",
         "x-imdb-user-country": "US",
@@ -46,7 +54,7 @@ def scrape_imdb(url):
         """
     }
 
-    r = requests.post(BASE_URL, headers=HEADERS, json=payload)
+    r = requests.post(BASE_URL, headers=HEADERS, json=payload, timeout=10)
     r.raise_for_status()
 
     title = r.json().get("data", {}).get("title")
@@ -61,22 +69,9 @@ def scrape_imdb(url):
 
 def get_db_connection():
     try:
-        conn = mysql.connector.connect(
-            host=DB_HOST,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            database=DB_DATABASE,
-            port=DB_PORT,
-            ssl_ca="ca.pem"
-        )
-        return conn
-    except mysql.connector.Error as err:
-        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            print("Erreur: Nom d'utilisateur ou mot de passe incorrect.")
-        elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            print("Erreur: La base de données n'existe pas.")
-        else:
-            print(f"Erreur de connexion à la base de données : {err}")
+        return mysql.connector.connect(**dbconfig)
+    except Exception as e:
+        print(f"Erreur DB: {e}")
         return None
 
 def init_client_r2():
@@ -85,28 +80,26 @@ def init_client_r2():
             endpoint_url=f'https://{os.environ.get("R2_ACCOUNT_ID")}.r2.cloudflarestorage.com',
             aws_access_key_id=os.environ.get("R2_ACCESS_KEY_ID"),
             aws_secret_access_key=os.environ.get("R2_SECRET_ACCESS_KEY"),
-            config=Config(signature_version='s3v4')
+            config=Config(signature_version='s3v4', connect_timeout=3, read_timeout=5)
         )
         return s3
-    except Exception as e:
-        print(f"Erreur lors de l'initialisation de R2 : {e}")
-        return False
+    except Exception:
+        return None
         
 def get_r2_signed_url(filename):
     try:
         s3 = init_client_r2()
+        if not s3: return None
         url = s3.generate_presigned_url('get_object', 
                                         Params={'Bucket': os.environ.get("R2_BUCKET_NAME", "mes-films") , 'Key': filename}, ExpiresIn=10800)
         return url
-    except Exception as e:
-        print(f"Erreur lors de la génération du lien R2 : {e}")
+    except Exception:
         return None
 
 def get_r2_storage_usage():
     try:
         s3 = init_client_r2()
-        if not s3:
-            return 0
+        if not s3: return 0
 
         total_size = 0
         continuation_token = None
@@ -126,20 +119,19 @@ def get_r2_storage_usage():
             continuation_token = response.get('NextContinuationToken')
             
         return total_size
-    except Exception as e:
-        print(f"Erreur lors du calcul du stockage R2 : {e}")
+    except Exception:
         return 0
 
 def delete_r2_file(filename):
     try:
         s3 = init_client_r2()
+        if not s3: return False
         s3.delete_object(
             Bucket=os.environ.get("R2_BUCKET_NAME", "mes-films"),
             Key=filename
         )
         return True
-    except Exception as e:
-        print(f"Erreur lors de la suppression du fichier R2 : {e}")
+    except Exception:
         return False
     
 def add_pending_movie(movie, source_link):
@@ -153,8 +145,7 @@ def add_pending_movie(movie, source_link):
         )
         cursor.execute(query, (movie["title"], movie["poster"], movie["url"], source_link))
         conn.commit()
-    except Exception as e:
-        print(f"Erreur lors de l'ajout en attente : {e}")
+    except Exception:
         conn.rollback()
     finally:
         cursor.close()
@@ -165,8 +156,7 @@ def get_pending_downloads():
     if not conn: return []
     cursor = conn.cursor(dictionary=True)
     try:
-        # Ajout du champ 'poster' dans la requête
-        cursor.execute("SELECT id_movie, title, poster, source_link, status FROM movie WHERE status = 'pending'")
+        cursor.execute("SELECT id_movie, title, poster, source_link, status, url FROM movie WHERE status = 'pending'")
         return cursor.fetchall()
     finally:
         cursor.close()
@@ -183,8 +173,7 @@ def complete_movie_download(id_movie, filename):
         query = "UPDATE movie SET movie_url = %s, status = 'available', download = TRUE WHERE id_movie = %s"
         cursor.execute(query, (filename, id_movie))
         conn.commit()
-    except Exception as e:
-        print(f"Erreur de mise à jour du téléchargement : {e}")
+    except Exception:
         conn.rollback()
     finally:
         cursor.close()
@@ -213,8 +202,7 @@ def load_data(limit=None):
                 m['download'] = False
                 
         return movies
-    except Exception as e:
-        print(f"Fallback activé : {e}")
+    except Exception:
         try:
             query = "SELECT id_movie, title, poster, url, movie_url, download, status FROM movie WHERE status IN ('available', 'deleted') ORDER BY id_movie DESC"
             if limit:
@@ -227,8 +215,7 @@ def load_data(limit=None):
                     m['status'] = 'deleted'
                     m['download'] = False
             return movies
-        except Exception as e2:
-            print(f"Erreur fatale lors du chargement des données : {e2}")
+        except Exception:
             return []
     finally:
         cursor.close()
@@ -246,8 +233,7 @@ def save_movie(movie):
         data_movie = (movie["title"], movie["poster"], movie["url"], movie.get("movie_url", ""))
         cursor.execute(add_movie_query, data_movie)
         conn.commit()
-    except Exception as e:
-        print(f"Erreur lors de l'enregistrement du film : {e}")
+    except Exception:
         conn.rollback()
     finally:
         cursor.close()
@@ -270,8 +256,7 @@ def update_movie(id_movie, movie):
         data_movie = (movie["title"], movie["poster"], movie["url"], movie_url, download, source_link, status, id_movie)
         cursor.execute(update_query, data_movie)
         conn.commit()
-    except Exception as e:
-        print(f"Erreur lors de la mise à jour du film {id_movie} : {e}")
+    except Exception:
         conn.rollback()
     finally:
         cursor.close()
@@ -293,8 +278,7 @@ def delete_movie_by_id(id_movie):
             filename = movie[0]
             if filename and not filename.startswith("http"):
                delete_r2_file(filename)
-    except Exception as e:
-        print(f"Erreur lors de la suppression du film {id_movie} : {e}")
+    except Exception:
         conn.rollback()
     finally:
         cursor.close()
@@ -316,8 +300,7 @@ def delete_video_by_id(id_movie):
             filename = movie[0]
             if filename and not filename.startswith("http"):
                delete_r2_file(filename)
-    except Exception as e:
-        print(f"Erreur lors de la suppression du film {id_movie} : {e}")
+    except Exception:
         conn.rollback()
     finally:
         cursor.close()
@@ -330,7 +313,7 @@ def get_movie_by_id(id_movie):
     try:
         cursor.execute("SELECT id_movie, title, poster, url, movie_url, download, status, source_link, created_at, updated_at FROM movie WHERE id_movie = %s", (id_movie,))
         movie = cursor.fetchone()
-    except Exception as e:
+    except Exception:
         cursor.execute("SELECT id_movie, title, poster, url, movie_url, download, status, source_link FROM movie WHERE id_movie = %s", (id_movie,))
         movie = cursor.fetchone()
     try:
@@ -341,7 +324,6 @@ def get_movie_by_id(id_movie):
         
         if not filename:
             movie['play_url'] = ''
-            # On force supprimé QUE si ce n'est pas "en attente" (pending)
             if movie.get('status') != 'pending':
                 movie['status'] = 'deleted'
             movie['download'] = False
@@ -355,11 +337,9 @@ def get_movie_by_id(id_movie):
         if signed_url:
             movie['play_url'] = signed_url
             return movie
-        else:
-            print(f"Impossible de générer le lien pour {filename}")
+        
         return movie
-    except Exception as e:
-        print(f"Erreur lors de la récupération du film {id_movie} : {e}")
+    except Exception:
         return None
     finally:
         cursor.close()
