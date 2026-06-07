@@ -1,0 +1,24 @@
+{
+  "name": "stremaing",
+  "version": "1.0.0",
+  "description": "**Mimatflix** est une application web personnelle pour visionner des films.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rudimah/Mimatflix.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/rudimah/Mimatflix/issues"
+  },
+  "homepage": "https://github.com/rudimah/Mimatflix#readme",
+  "devDependencies": {
+    "tailwindcss": "^3.4.19"
+  }
+}

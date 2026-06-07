@@ -1,4 +1,5 @@
 import mysql.connector
+from mysql.connector.pooling import MySQLConnectionPool
 import os
 import boto3
 from botocore.client import Config
@@ -6,6 +7,7 @@ from curl_cffi import requests
 from dotenv import load_dotenv
 
 load_dotenv()
+
 DB_HOST = os.environ.get("DB_HOST", "localhost")
 DB_USER = os.environ.get("DB_USER", "root")
 DB_PASSWORD = os.environ.get("DB_PASSWORD", "password")
@@ -21,6 +23,16 @@ dbconfig = {
     "ssl_ca": "ca.pem",
     "connect_timeout": 5
 }
+
+try:
+    db_pool = MySQLConnectionPool(
+        pool_name="mimatflix_pool",
+        pool_size=5,
+        pool_reset_session=True,
+        **dbconfig
+    )
+except Exception:
+    db_pool = None
 
 def scrape_imdb(url):
     BASE_URL = "https://caching.graphql.imdb.com/"
@@ -61,15 +73,23 @@ def scrape_imdb(url):
     if not title:
         raise ValueError("Titre introuvable")
         
+    poster_url = title.get("primaryImage", {}).get("url")
+    
+    if poster_url and "._V1_" in poster_url:
+        poster_url = poster_url.split("._V1_")[0] + "._V1_UX300_.jpg"
+
     return {
         "title": title["titleText"]["text"],
-        "poster": title.get("primaryImage", {}).get("url"),
+        "poster": poster_url,
         "url": url
     }
 
 def get_db_connection():
     try:
-        return mysql.connector.connect(**dbconfig)
+        if db_pool:
+            return db_pool.get_connection()
+        else:
+            return mysql.connector.connect(**dbconfig)
     except Exception as e:
         print(f"Erreur DB: {e}")
         return None
