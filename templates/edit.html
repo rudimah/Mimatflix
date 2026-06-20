@@ -1,36 +1,45 @@
 {% extends "base.html" %}
 
-{% block title %}Modifier {{ movie.title }}{% endblock %}
-
 {% block content %}
-<div class="max-w-xl mx-auto mt-8 sm:mt-12">
-    <h1 class="text-3xl md:text-4xl font-extrabold text-primary text-center mb-8 tracking-tight">Modifier le film</h1>
-
+<div class="max-w-xl mx-auto mt-8 px-2">
+    <h1 class="text-2xl font-black mb-6 flex items-center gap-3 text-slate-900 dark:text-white transition-colors">
+        <a href="{{ url_for('add_movie') }}" class="text-slate-400 dark:text-gray-500 hover:text-slate-900 dark:hover:text-white transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
+        </a>
+        Éditer le film
+    </h1>
+    
     {% if error %}
-    <div class="bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 p-4 rounded-xl mb-6 border-l-4 border-primary font-medium shadow-sm">
-        {{ error }}
-    </div>
+    <div class="bg-red-100 dark:bg-netflix/20 text-red-600 dark:text-netflix p-4 rounded-lg text-sm font-bold mb-4 border border-red-300 dark:border-netflix/50 transition-colors">{{ error }}</div>
     {% endif %}
 
-    <form method="POST" class="bg-white dark:bg-bgCard p-8 rounded-2xl shadow-xl dark:shadow-lg border border-slate-200 dark:border-white/5 flex flex-col gap-6 transition-colors">
-        <div>
-            <label class="block text-slate-500 dark:text-zinc-400 text-xs mb-2 font-bold uppercase tracking-widest">Lien IMDb</label>
-            <input type="text" name="imdb_url" value="{{ movie.url }}" required class="w-full p-4 bg-slate-50 dark:bg-zinc-800 border border-slate-300 dark:border-transparent rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner">
-        </div>
-        
-        <div>
-            <label class="block text-slate-500 dark:text-zinc-400 text-xs mb-2 font-bold uppercase tracking-widest">Lien Vidéo (.mp4) - <span class="normal-case font-normal">Laissez vide si non téléchargé</span></label>
-            <input type="text" name="film_url" value="{{ movie.movie_url if movie.movie_url else '' }}" class="w-full p-4 bg-slate-50 dark:bg-zinc-800 border border-slate-300 dark:border-transparent rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all shadow-inner">
+    <div class="bg-white dark:bg-cardbg p-6 rounded-2xl border border-slate-200 dark:border-white/5 shadow-xl flex flex-col gap-6 transition-colors duration-300">
+        <div class="flex items-center gap-4 pb-6 border-b border-slate-200 dark:border-white/5">
+            <img src="{{ movie.poster }}" class="w-16 h-24 object-cover rounded shadow-sm border border-slate-200 dark:border-white/10">
+            <div>
+                <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-1 transition-colors">{{ movie.title }}</h2>
+                <span class="text-xs text-slate-500 dark:text-gray-400">ID Base de données : {{ movie.id_movie }}</span>
+            </div>
         </div>
 
-        <div>
-            <label class="block text-blue-500 dark:text-blue-400 text-xs mb-2 font-bold uppercase tracking-widest">Lien Source (Script)</label>
-            <input type="text" name="source_link" value="{{ movie.source_link if movie.source_link else '' }}" class="w-full p-4 bg-slate-50 dark:bg-zinc-800 border border-slate-300 dark:border-transparent rounded-xl text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-inner">
-        </div>
-        
-        <button type="submit" class="w-full py-4 bg-primary hover:bg-primaryHover text-white rounded-xl font-bold uppercase tracking-widest transition-all mt-4 shadow-lg hover:shadow-primary/40 active:scale-95">Enregistrer les modifications</button>
-    </form>
+        <form method="POST" class="flex flex-col gap-5">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-2 tracking-wide">LIEN IMDB</label>
+                <input type="text" name="imdb_url" value="{{ movie.url }}" required class="w-full bg-slate-50 dark:bg-darkbg border border-slate-300 dark:border-white/10 rounded px-4 py-3 text-sm focus:outline-none focus:border-slate-500 dark:focus:border-gray-400 transition-colors text-slate-900 dark:text-gray-200">
+            </div>
 
-    <a href="{{ url_for('add_movie') }}" class="block text-center mt-8 text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-white transition-colors font-medium hover:underline underline-offset-4 decoration-dotted w-fit mx-auto">⬅ Annuler</a>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-2 tracking-wide">FICHIER VIDEO (Vide si non téléchargé)</label>
+                <input type="text" name="film_url" value="{{ movie.movie_url if movie.movie_url else '' }}" class="w-full bg-slate-50 dark:bg-darkbg border border-slate-300 dark:border-white/10 rounded px-4 py-3 text-sm focus:outline-none focus:border-slate-500 dark:focus:border-gray-400 transition-colors text-slate-900 dark:text-gray-200">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-2 tracking-wide">LIEN SOURCE (Optionnel)</label>
+                <input type="text" name="source_link" value="{{ movie.source_link if movie.source_link else '' }}" class="w-full bg-slate-50 dark:bg-darkbg border border-slate-300 dark:border-white/10 rounded px-4 py-3 text-sm focus:outline-none focus:border-slate-500 dark:focus:border-gray-400 transition-colors text-slate-900 dark:text-gray-200">
+            </div>
+
+            <button type="submit" class="w-full bg-slate-900 dark:bg-white text-white dark:text-black hover:bg-slate-800 dark:hover:bg-gray-200 font-bold py-3 rounded mt-4 transition-colors shadow-lg">Sauvegarder les modifications</button>
+        </form>
+    </div>
 </div>
 {% endblock %}
