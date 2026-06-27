@@ -43,7 +43,7 @@
     </div>
 
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const videoElement = document.getElementById('player');
@@ -61,16 +61,65 @@
                 ratio: '16:9'
             });
 
-            const socket = io();
-            const roomId = 'movie_{{ movie.id_movie }}';
-            socket.emit('join', { room: roomId });
 
-            let syncVideo = false;
+            const pusherKey = "{{ pusher_key }}";
+            const pusherCluster = "{{ pusher_cluster }}";
+            const roomId = 'movie_{{ movie.id_movie }}';
+            
+            const syncCheckbox = document.getElementById('syncVideo');
+            let syncVideo = syncCheckbox ? syncCheckbox.checked : false;
             let isReceiving = false;
 
             document.getElementById('syncVideo')?.addEventListener('change', (e) => {
                 syncVideo = e.target.checked;
+                console.log("Sync Vidéo est maintenant :", syncVideo);
             });
+
+            if (pusherKey && pusherCluster) {
+                const pusher = new Pusher(pusherKey, {
+                    cluster: pusherCluster
+                });
+                
+                const channel = pusher.subscribe(roomId);
+                channel.bind('player_action', function(data) {
+                    isReceiving = true;
+                    
+                    const payload = typeof data === 'string' ? JSON.parse(data) : data;
+                    
+                    console.log("Ordre reçu :", payload.action, "| Sync activée :", syncVideo);
+
+                    if (syncVideo) {
+                        if (payload.action === 'play') {
+                            if (Math.abs(player.currentTime - payload.time) > 1) {
+                                player.currentTime = payload.time;
+                            }
+                            player.play();
+                        } else if (payload.action === 'pause') {
+                            if (Math.abs(player.currentTime - payload.time) > 0.5) {
+                                player.currentTime = payload.time;
+                            }
+                            player.pause();
+                        } else if (payload.action === 'seek') {
+                            player.currentTime = payload.time;
+                        }
+                    }
+                    setTimeout(() => { isReceiving = false; }, 300);
+                });
+            }
+
+            function emitAction(actionName) {
+                if (syncVideo && !isReceiving) {
+                    fetch('/api/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            room: roomId, 
+                            action: actionName, 
+                            time: player.currentTime 
+                        })
+                    }).catch(err => console.error("Erreur Sync:", err));
+                }
+            }
 
             function formatTime(seconds) {
                 const h = Math.floor(seconds / 3600);
@@ -99,41 +148,9 @@
                 }
             });
 
-            player.on('play', () => {
-                if (syncVideo && !isReceiving) {
-                    socket.emit('player_action', { room: roomId, action: 'play', time: player.currentTime });
-                }
-            });
-
-            player.on('pause', () => {
-                if (syncVideo && !isReceiving) {
-                    socket.emit('player_action', { room: roomId, action: 'pause', time: player.currentTime });
-                }
-            });
-
-            player.on('seeked', () => {
-                if (syncVideo && !isReceiving) {
-                    socket.emit('player_action', { room: roomId, action: 'seek', time: player.currentTime });
-                }
-            });
-
-            socket.on('player_action', (data) => {
-                isReceiving = true;
-                if (syncVideo) {
-                    if (data.action === 'play') {
-                        if (Math.abs(player.currentTime - data.time) > 1) {
-                            player.currentTime = data.time;
-                        }
-                        player.play();
-                    } else if (data.action === 'pause') {
-                        player.currentTime = data.time;
-                        player.pause();
-                    } else if (data.action === 'seek') {
-                        player.currentTime = data.time;
-                    }
-                }
-                setTimeout(() => { isReceiving = false; }, 300);
-            });
+            player.on('play', () => emitAction('play'));
+            player.on('pause', () => emitAction('pause'));
+            player.on('seeked', () => emitAction('seek'));
 
             const wrapper = document.querySelector('.plyr');
             if (wrapper) {
