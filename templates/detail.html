@@ -27,13 +27,23 @@
     </div>
     
     <div class="mt-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 class="text-3xl md:text-5xl font-black text-slate-900 dark:text-white transition-colors">{{ movie.title }}</h1>
-        <a href="{{ movie.url }}" target="_blank" class="bg-[#f5c518] hover:bg-[#e2b616] text-black px-4 py-1.5 rounded font-bold text-sm flex items-center justify-center gap-1 w-fit transition-colors shadow-sm">
+        <div>
+            <h1 class="text-3xl md:text-5xl font-black text-slate-900 dark:text-white transition-colors">{{ movie.title }}</h1>
+            <div class="mt-4 flex flex-col sm:flex-row gap-4 sm:gap-6 bg-slate-100 dark:bg-cardbg p-4 rounded-xl border border-slate-200 dark:border-white/5">
+                <span class="text-xs font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Sync-Watch :</span>
+                <label class="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" id="syncVideo" class="w-4 h-4 rounded accent-netflix bg-slate-50 border-slate-300">
+                    <span class="text-sm font-bold text-slate-700 dark:text-gray-300">Sync Vidéo (Lecture/Pause/Avance)</span>
+                </label>
+            </div>
+        </div>
+        <a href="{{ movie.url }}" target="_blank" class="bg-[#f5c518] hover:bg-[#e2b616] text-black px-4 py-1.5 rounded font-bold text-sm flex items-center justify-center gap-1 w-fit transition-colors shadow-sm h-fit">
             Voir sur IMDb
         </a>
     </div>
 
     <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const videoElement = document.getElementById('player');
@@ -49,6 +59,17 @@
                 keyboard: { focused: true, global: true },
                 fullscreen: { enabled: true, fallback: true, iosNative: true },
                 ratio: '16:9'
+            });
+
+            const socket = io();
+            const roomId = 'movie_{{ movie.id_movie }}';
+            socket.emit('join', { room: roomId });
+
+            let syncVideo = false;
+            let isReceiving = false;
+
+            document.getElementById('syncVideo')?.addEventListener('change', (e) => {
+                syncVideo = e.target.checked;
             });
 
             function formatTime(seconds) {
@@ -76,6 +97,42 @@
                 if (player.playing && player.currentTime > 0) {
                     localStorage.setItem(STORAGE_KEY, player.currentTime);
                 }
+            });
+
+            player.on('play', () => {
+                if (syncVideo && !isReceiving) {
+                    socket.emit('player_action', { room: roomId, action: 'play', time: player.currentTime });
+                }
+            });
+
+            player.on('pause', () => {
+                if (syncVideo && !isReceiving) {
+                    socket.emit('player_action', { room: roomId, action: 'pause', time: player.currentTime });
+                }
+            });
+
+            player.on('seeked', () => {
+                if (syncVideo && !isReceiving) {
+                    socket.emit('player_action', { room: roomId, action: 'seek', time: player.currentTime });
+                }
+            });
+
+            socket.on('player_action', (data) => {
+                isReceiving = true;
+                if (syncVideo) {
+                    if (data.action === 'play') {
+                        if (Math.abs(player.currentTime - data.time) > 1) {
+                            player.currentTime = data.time;
+                        }
+                        player.play();
+                    } else if (data.action === 'pause') {
+                        player.currentTime = data.time;
+                        player.pause();
+                    } else if (data.action === 'seek') {
+                        player.currentTime = data.time;
+                    }
+                }
+                setTimeout(() => { isReceiving = false; }, 300);
             });
 
             const wrapper = document.querySelector('.plyr');

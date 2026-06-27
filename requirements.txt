@@ -6,3 +6,5 @@ gunicorn
 boto3
 dotenv
 curl_cffi
+Flask-SocketIO
+eventlet

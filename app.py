@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, render_template, request, redirect, url_for, abort, session
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from functools import wraps
 from data import scrape_imdb, load_data, save_movie, update_movie, delete_movie_by_id, get_movie_by_id, delete_video_by_id, get_r2_storage_usage, get_pending_downloads, get_api_pending_downloads, add_pending_movie, complete_movie_download
 import os
@@ -9,6 +10,7 @@ load_dotenv()
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "mimatflix_super_secret_key")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 def login_required(f):
     @wraps(f)
@@ -122,5 +124,15 @@ def movie_detail(id_movie):
         abort(404) 
     return render_template("detail.html", movie=movie)
 
+@socketio.on('join')
+def on_join(data):
+    room = data['room']
+    join_room(room)
+
+@socketio.on('player_action')
+def on_player_action(data):
+    room = data['room']
+    emit('player_action', data, room=room, include_self=False)
+
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    socketio.run(app, debug=True, host="0.0.0.0", port=5000)
