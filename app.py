@@ -38,7 +38,7 @@ def catalogue():
     movies = load_data(home=False)
     return render_template("index.html", movies=movies, is_home=False)
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route("/tamer", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         if request.form.get("password") == ADMIN_PASSWORD:
@@ -99,19 +99,26 @@ def edit_movie(id_movie):
     movie = get_movie_by_id(id_movie)
     if movie is None:
         abort(404)
+        
     if request.method == "POST":
-        imdb_url = request.form.get("imdb_url")
-        url = request.form.get("film_url")
-        source_link = request.form.get("source_link")
         try:
-            updated_movie_details = scrape_imdb(imdb_url)
-            updated_movie_details["movie_url"] = url
-            updated_movie_details["source_link"] = source_link
+            # Création du dictionnaire avec toutes les valeurs du formulaire
+            updated_movie_details = {
+                "title": request.form.get("title"),
+                "poster": request.form.get("poster"),
+                "url": request.form.get("url"),
+                "movie_url": request.form.get("movie_url"),
+                "source_link": request.form.get("source_link"),
+                "status": request.form.get("status")
+            }
+            
             update_movie(id_movie, updated_movie_details)
             return redirect(url_for("add_movie"))
         except Exception as e:
             return render_template("edit.html", movie=movie, error=str(e)), 500
+            
     return render_template("edit.html", movie=movie)
+
 
 @app.route("/<int:id_movie>", methods=["POST"])
 @login_required

@@ -172,14 +172,35 @@ def update_movie(id_movie, movie):
     if not conn: return
     cursor = conn.cursor()
     try:
-        cursor.execute("UPDATE movie SET title = %s, poster = %s, url = %s, movie_url = %s, source_link = %s WHERE id_movie = %s", (movie["title"], movie["poster"], movie["url"], movie.get("movie_url", ""), movie.get("source_link", ""), id_movie))
+        query = """
+            UPDATE movie 
+            SET title = %s, 
+                poster = %s, 
+                url = %s, 
+                movie_url = %s, 
+                source_link = %s, 
+                status = %s 
+            WHERE id_movie = %s
+        """
+        values = (
+            movie["title"], 
+            movie["poster"], 
+            movie["url"], 
+            movie.get("movie_url", ""), 
+            movie.get("source_link", ""),
+            movie.get("status", "available"),
+            id_movie
+        )
+        cursor.execute(query, values)
         conn.commit()
-    except:
+    except Exception as e:
+        print("Erreur SQL:", e)
         conn.rollback()
     finally:
         cursor.close()
         conn.close()
 
+        
 def delete_movie_by_id(id_movie):
     conn = get_db_connection()
     if not conn: return

@@ -18,24 +18,49 @@
             <img src="{{ movie.poster }}" class="w-16 h-24 object-cover rounded shadow-sm border border-slate-200 dark:border-white/10">
             <div>
                 <h2 class="text-xl font-bold text-slate-900 dark:text-white mb-1 transition-colors">{{ movie.title }}</h2>
-                <span class="text-xs text-slate-500 dark:text-gray-400">ID Base de données : {{ movie.id_movie }}</span>
+                <span class="text-xs text-slate-500 dark:text-gray-400 block">ID DB : {{ movie.id_movie }}</span>
+                {% if movie.created_at %}
+                <span class="text-xs text-slate-500 dark:text-gray-400 block">Créé le : {{ movie.created_at }}</span>
+                {% endif %}
+                {% if movie.updated_at %}
+                <span class="text-xs text-slate-500 dark:text-gray-400 block">Mis à jour le : {{ movie.updated_at }}</span>
+                {% endif %}
             </div>
         </div>
 
         <form method="POST" class="flex flex-col gap-5">
             <div>
-                <label class="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-2 tracking-wide">LIEN IMDB</label>
-                <input type="text" name="imdb_url" value="{{ movie.url }}" required class="w-full bg-slate-50 dark:bg-darkbg border border-slate-300 dark:border-white/10 rounded px-4 py-3 text-sm focus:outline-none focus:border-slate-500 dark:focus:border-gray-400 transition-colors text-slate-900 dark:text-gray-200">
+                <label class="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-2 tracking-wide">TITRE</label>
+                <input type="text" name="title" value="{{ movie.title }}" required class="w-full bg-slate-50 dark:bg-darkbg border border-slate-300 dark:border-white/10 rounded px-4 py-3 text-sm focus:outline-none focus:border-slate-500 dark:focus:border-gray-400 transition-colors text-slate-900 dark:text-gray-200">
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-2 tracking-wide">FICHIER VIDEO (Vide si non téléchargé)</label>
-                <input type="text" name="film_url" value="{{ movie.movie_url if movie.movie_url else '' }}" class="w-full bg-slate-50 dark:bg-darkbg border border-slate-300 dark:border-white/10 rounded px-4 py-3 text-sm focus:outline-none focus:border-slate-500 dark:focus:border-gray-400 transition-colors text-slate-900 dark:text-gray-200">
+                <label class="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-2 tracking-wide">POSTER</label>
+                <input type="text" name="poster" value="{{ movie.poster }}" required class="w-full bg-slate-50 dark:bg-darkbg border border-slate-300 dark:border-white/10 rounded px-4 py-3 text-sm focus:outline-none focus:border-slate-500 dark:focus:border-gray-400 transition-colors text-slate-900 dark:text-gray-200">
             </div>
 
             <div>
-                <label class="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-2 tracking-wide">LIEN SOURCE (Optionnel)</label>
+                <label class="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-2 tracking-wide">IMDB</label>
+                <input type="text" name="url" value="{{ movie.url }}" required class="w-full bg-slate-50 dark:bg-darkbg border border-slate-300 dark:border-white/10 rounded px-4 py-3 text-sm focus:outline-none focus:border-slate-500 dark:focus:border-gray-400 transition-colors text-slate-900 dark:text-gray-200">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-2 tracking-wide">FICHIER .mp4</label>
+                <input type="text" name="movie_url" value="{{ movie.movie_url if movie.movie_url else '' }}" class="w-full bg-slate-50 dark:bg-darkbg border border-slate-300 dark:border-white/10 rounded px-4 py-3 text-sm focus:outline-none focus:border-slate-500 dark:focus:border-gray-400 transition-colors text-slate-900 dark:text-gray-200">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-2 tracking-wide">SOURCE </label>
                 <input type="text" name="source_link" value="{{ movie.source_link if movie.source_link else '' }}" class="w-full bg-slate-50 dark:bg-darkbg border border-slate-300 dark:border-white/10 rounded px-4 py-3 text-sm focus:outline-none focus:border-slate-500 dark:focus:border-gray-400 transition-colors text-slate-900 dark:text-gray-200">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-500 dark:text-gray-400 mb-2 tracking-wide">STATUT</label>
+                <select name="status" class="w-full bg-slate-50 dark:bg-darkbg border border-slate-300 dark:border-white/10 rounded px-4 py-3 text-sm focus:outline-none focus:border-slate-500 dark:focus:border-gray-400 transition-colors text-slate-900 dark:text-gray-200">
+                    <option value="pending" {% if movie.status == 'pending' %}selected{% endif %}>En attente </option>
+                    <option value="available" {% if movie.status == 'available' %}selected{% endif %}>Disponible </option>
+                    <option value="deleted" {% if movie.status == 'deleted' %}selected{% endif %}>Supprimé</option>
+                </select>
             </div>
 
             <button type="submit" class="w-full bg-slate-900 dark:bg-white text-white dark:text-black hover:bg-slate-800 dark:hover:bg-gray-200 font-bold py-3 rounded mt-4 transition-colors shadow-lg">Sauvegarder les modifications</button>
