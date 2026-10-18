@@ -61,7 +61,11 @@ def init_client_r2():
 def get_r2_signed_url(filename):
     try:
         s3 = init_client_r2()
-        return s3.generate_presigned_url('get_object', Params={'Bucket': os.environ.get("R2_BUCKET_NAME", "mes-films") , 'Key': filename}, ExpiresIn=10800)
+        return s3.generate_presigned_url(
+            'get_object',
+            Params={'Bucket': os.environ.get("R2_BUCKET_NAME", "mes-films"), 'Key': filename},
+            ExpiresIn=43200 
+        )
     except:
         return None
 

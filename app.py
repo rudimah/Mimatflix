@@ -155,5 +155,13 @@ def sync_video():
             print("Erreur Pusher:", e)
     return jsonify({"status": "success"})
 
+@app.route("/api/movie/<int:id_movie>/refresh_url", methods=["GET"])
+def refresh_movie_url(id_movie):
+    movie = get_movie_by_id(id_movie)
+    if not movie or not movie.get("play_url"):
+        return jsonify({"error": "Not found"}), 404
+    return jsonify({"play_url": movie["play_url"]}), 200
+
+
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5001)
+    app.run(debug=True, host="0.0.0.0", port=5000)

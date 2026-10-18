@@ -1,27 +1,157 @@
 {% extends "base.html" %}
+
 {% block styles %}
-<link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
 <style>
-    :root { --plyr-color-main: #E50914; }
-    .plyr { width: 100%; height: 100%; border-radius: 1rem; overflow: hidden; }
-    .plyr--fullscreen-active .plyr__video-wrapper { height: 100vh; height: 100dvh; }
-    .plyr--fullscreen-active { z-index: 99999 !important; }
+    /* Mode plein écran compatible tous appareils */
+    #playerContainer:fullscreen,
+    #playerContainer:-webkit-full-screen {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        max-width: none !important;
+        border-radius: 0 !important;
+        border: none !important;
+        background: #000;
+        z-index: 99999 !important;
+    }
+
+    /* Curseur de progression personnalisé style Netflix */
+    .video-slider {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 100%;
+        height: 6px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.25);
+        outline: none;
+        cursor: pointer;
+        transition: height 0.15s ease;
+    }
+    .video-slider:hover { height: 9px; }
+    .video-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #E50914;
+        border: 2px solid #ffffff;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(229, 9, 20, 0.8);
+    }
+    .video-slider::-moz-range-thumb {
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: #E50914;
+        border: 2px solid #ffffff;
+        cursor: pointer;
+        box-shadow: 0 0 10px rgba(229, 9, 20, 0.8);
+    }
 </style>
 {% endblock %}
+
 {% block content %}
 <div class="w-full max-w-6xl mx-auto px-2 mt-4">
     <button onclick="window.history.back()" class="mb-6 flex items-center gap-2 text-slate-500 dark:text-gray-400 hover:text-netflix dark:hover:text-white text-sm font-bold w-fit transition-colors">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
         Retour
     </button>
+
     {% if movie.download %}
-    <div class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 group">
-        <div id="seekFeedback" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl md:text-3xl text-white bg-black/60 px-6 py-4 rounded-full pointer-events-none opacity-0 transition-all z-20 font-bold scale-90 backdrop-blur-md"></div>
-        <div id="resumeToast" class="absolute top-6 right-6 bg-netflix/90 backdrop-blur-md text-white px-5 py-3 rounded-xl font-bold z-30 translate-x-[150%] transition-transform duration-500 shadow-xl border border-white/20">Lecture reprise</div>
-        <video id="player" playsinline controls crossorigin preload="metadata" class="w-full h-full object-contain">
-            <source src="{{ movie.play_url }}" type="video/mp4" />
+    <!-- CONTENEUR PRINCIPAL DU LECTEUR -->
+    <div id="playerContainer" class="relative w-full aspect-video bg-black rounded-2xl overflow-hidden shadow-2xl border border-slate-200 dark:border-white/10 select-none" tabindex="0">
+        
+        <!-- Flux Vidéo -->
+        <video id="player" playsinline preload="metadata" class="w-full h-full object-contain bg-black">
+            <source id="videoSource" src="{{ movie.play_url }}" type="video/mp4" />
         </video>
+
+        <!-- Toast de reprise -->
+        <div id="resumeToast" class="absolute top-6 right-6 bg-netflix/90 backdrop-blur-md text-white px-5 py-3 rounded-xl font-bold z-40 translate-x-[150%] transition-transform duration-500 shadow-xl border border-white/20 pointer-events-none text-sm">
+            Lecture reprise
+        </div>
+
+        <!-- Indicateur de chargement / Purge RAM -->
+        <div id="loadingSpinner" class="hidden absolute inset-0 flex flex-col items-center justify-center bg-black/40 z-30 pointer-events-none">
+            <div class="w-14 h-14 border-4 border-white/20 border-t-netflix rounded-full animate-spin"></div>
+            <span id="loadingText" class="text-white text-xs font-bold mt-3 bg-black/60 px-3 py-1 rounded-full">Chargement...</span>
+        </div>
+
+        <!-- Feedback visuel -->
+        <div id="seekFeedback" class="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xl md:text-2xl text-white bg-black/75 px-6 py-2.5 rounded-full pointer-events-none opacity-0 transition-all z-40 font-black scale-90 backdrop-blur-md border border-white/10 whitespace-nowrap"></div>
+
+        <!-- OVERLAY DES CONTRÔLES -->
+        <div id="controlsOverlay" class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/35 to-black/60 flex flex-col justify-between p-4 md:p-7 transition-opacity duration-300 z-20 opacity-100">
+            
+            <!-- Barre supérieure -->
+            <div class="flex items-center justify-between gap-4">
+                <h2 class="text-white font-bold text-sm md:text-lg truncate drop-shadow-md">{{ movie.title }}</h2>
+                <button id="boostRamBtn" type="button" title="Rafraîchir le flux si la vidéo ralentit" class="bg-white/15 hover:bg-white/25 active:scale-95 backdrop-blur-md text-white text-xs font-bold px-3.5 py-2 rounded-xl border border-white/15 flex items-center gap-1.5 transition-all">
+                    <svg class="w-4 h-4 text-netflix" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <span class="hidden sm:inline">Booster Flux</span>
+                </button>
+            </div>
+
+            <!-- CENTRE : GRANDS BOUTONS TACTILES -->
+            <div class="flex items-center justify-center gap-8 sm:gap-14 md:gap-20 my-auto">
+                <button id="rewindBtn" type="button" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-black/55 hover:bg-black/80 active:scale-90 border-2 border-white/25 text-white flex flex-col items-center justify-center transition-all backdrop-blur-md shadow-2xl">
+                    <svg class="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"></path></svg>
+                    <span class="text-[11px] sm:text-xs font-black tracking-tighter -mt-0.5">-10s</span>
+                </button>
+
+                <button id="playPauseBtn" type="button" class="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-full bg-netflix/95 hover:bg-netflix active:scale-90 border-2 border-white/40 text-white flex items-center justify-center transition-all shadow-2xl shadow-netflix/50">
+                    <svg id="playIcon" class="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 ml-1.5" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"></path></svg>
+                    <svg id="pauseIcon" class="hidden w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14" fill="currentColor" viewBox="0 0 20 20"><path d="M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z"></path></svg>
+                </button>
+
+                <button id="forwardBtn" type="button" class="w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-black/55 hover:bg-black/80 active:scale-90 border-2 border-white/25 text-white flex flex-col items-center justify-center transition-all backdrop-blur-md shadow-2xl">
+                    <svg class="w-7 h-7 sm:w-9 sm:h-9 md:w-10 md:h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"></path></svg>
+                    <span class="text-[11px] sm:text-xs font-black tracking-tighter -mt-0.5">+10s</span>
+                </button>
+            </div>
+
+            <!-- BARRE INFÉRIEURE -->
+            <div class="space-y-3">
+                <input id="progressBar" type="range" min="0" max="100" value="0" step="0.1" class="video-slider" />
+                
+                <div class="flex items-center justify-between text-white text-xs sm:text-sm font-bold">
+                    <div class="flex items-center gap-3">
+                        <span id="currentTimeEl">0:00</span>
+                        <span class="text-white/40">/</span>
+                        <span id="durationEl" class="text-white/70">0:00</span>
+                    </div>
+
+                    <div class="flex items-center gap-2 sm:gap-4">
+                        
+                        <!-- Sélecteur de vitesse de lecture -->
+                        <div class="relative group z-50">
+                            <button id="speedBtn" type="button" class="text-white text-xs font-bold px-2 py-1.5 rounded-lg hover:bg-white/15 transition-all">1x</button>
+                            <div id="speedMenu" class="absolute bottom-full right-0 mb-2 hidden flex-col bg-black/90 backdrop-blur-md rounded-lg overflow-hidden border border-white/10 shadow-xl">
+                                <button class="speed-opt px-4 py-2.5 text-xs font-bold text-white hover:bg-netflix transition-colors" data-speed="2">2x</button>
+                                <button class="speed-opt px-4 py-2.5 text-xs font-bold text-white hover:bg-netflix transition-colors" data-speed="1.5">1.5x</button>
+                                <button class="speed-opt px-4 py-2.5 text-xs font-bold text-white hover:bg-netflix transition-colors" data-speed="1.25">1.25x</button>
+                                <button class="speed-opt px-4 py-2.5 text-xs font-bold text-netflix hover:bg-netflix hover:text-white transition-colors" data-speed="1">1x</button>
+                                <button class="speed-opt px-4 py-2.5 text-xs font-bold text-white hover:bg-netflix transition-colors" data-speed="0.75">0.75x</button>
+                                <button class="speed-opt px-4 py-2.5 text-xs font-bold text-white hover:bg-netflix transition-colors" data-speed="0.5">0.5x</button>
+                            </div>
+                        </div>
+
+                        <button id="muteBtn" type="button" class="p-2 rounded-lg hover:bg-white/15 active:scale-95 transition-all">
+                            <svg id="volOnIcon" class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                            <svg id="volOffIcon" class="hidden w-5 h-5 sm:w-6 sm:h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"></path></svg>
+                        </button>
+
+                        <button id="fullscreenBtn" type="button" class="p-2 rounded-lg hover:bg-white/15 active:scale-95 transition-all">
+                            <svg class="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- INFOS FILM -->
     <div class="mt-8 flex flex-col md:flex-row md:items-start justify-between gap-6">
         <div class="space-y-4">
             <h1 class="text-3xl md:text-5xl font-black text-slate-900 dark:text-white">{{ movie.title }}</h1>
@@ -37,76 +167,222 @@
             Fiche IMDb
         </a>
     </div>
-    <script src="https://cdn.plyr.io/3.7.8/plyr.js"></script>
+
     <script src="https://js.pusher.com/8.2.0/pusher.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const videoElement = document.getElementById('player');
-            if (!videoElement) return;
-            const STORAGE_KEY = "video_progress_{{ movie.title | replace(' ', '_') | lower }}";
+            const video = document.getElementById('player');
+            const container = document.getElementById('playerContainer');
+            const overlay = document.getElementById('controlsOverlay');
+            const playPauseBtn = document.getElementById('playPauseBtn');
+            const playIcon = document.getElementById('playIcon');
+            const pauseIcon = document.getElementById('pauseIcon');
+            const rewindBtn = document.getElementById('rewindBtn');
+            const forwardBtn = document.getElementById('forwardBtn');
+            const progressBar = document.getElementById('progressBar');
+            const currentTimeEl = document.getElementById('currentTimeEl');
+            const durationEl = document.getElementById('durationEl');
+            const muteBtn = document.getElementById('muteBtn');
+            const volOnIcon = document.getElementById('volOnIcon');
+            const volOffIcon = document.getElementById('volOffIcon');
+            const fullscreenBtn = document.getElementById('fullscreenBtn');
             const feedbackEl = document.getElementById('seekFeedback');
             const resumeToast = document.getElementById('resumeToast');
-            const player = new Plyr('#player', {
-                controls: ['play-large', 'restart', 'rewind', 'play', 'fast-forward', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'pip', 'fullscreen'],
-                seekTime: 10,
-                keyboard: { focused: true, global: true },
-                fullscreen: { enabled: true, fallback: true, iosNative: true },
-                ratio: '16:9'
-            });
-            const pusherKey = "{{ pusher_key }}";
-            const pusherCluster = "{{ pusher_cluster }}";
-            const roomId = 'movie_{{ movie.id_movie }}';
-            const syncCheckbox = document.getElementById('syncVideo');
-            let syncVideo = syncCheckbox ? syncCheckbox.checked : false;
-            let isReceiving = false;
-            document.getElementById('syncVideo')?.addEventListener('change', (e) => {
-                syncVideo = e.target.checked;
-            });
-            if (pusherKey && pusherCluster) {
-                const pusher = new Pusher(pusherKey, { cluster: pusherCluster });
-                const channel = pusher.subscribe(roomId);
-                channel.bind('player_action', function(data) {
-                    isReceiving = true;
-                    const payload = typeof data === 'string' ? JSON.parse(data) : data;
-                    if (syncVideo) {
-                        if (payload.action === 'play') {
-                            if (Math.abs(player.currentTime - payload.time) > 1) {
-                                player.currentTime = payload.time;
-                            }
-                            player.play();
-                        } else if (payload.action === 'pause') {
-                            if (Math.abs(player.currentTime - payload.time) > 0.5) {
-                                player.currentTime = payload.time;
-                            }
-                            player.pause();
-                        } else if (payload.action === 'seek') {
-                            player.currentTime = payload.time;
-                        }
-                    }
-                    setTimeout(() => { isReceiving = false; }, 300);
-                });
-            }
-            function emitAction(actionName) {
-                if (syncVideo && !isReceiving) {
-                    fetch('/api/sync', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ room: roomId, action: actionName, time: player.currentTime })
-                    }).catch(err => console.error(err));
-                }
-            }
+            const boostRamBtn = document.getElementById('boostRamBtn');
+            
+            // Vitesse
+            const speedBtn = document.getElementById('speedBtn');
+            const speedMenu = document.getElementById('speedMenu');
+            const speedOpts = document.querySelectorAll('.speed-opt');
+
+            if (!video) return;
+
+            const MOVIE_ID = {{ movie.id_movie }};
+            const STORAGE_KEY = "video_progress_{{ movie.title | replace(' ', '_') | lower }}";
+            let controlsTimeout = null;
+
+            // Focuser le conteneur pour capter les touches clavier directement
+            container.focus();
+
             function formatTime(seconds) {
+                if (!seconds || isNaN(seconds)) return "0:00";
                 const h = Math.floor(seconds / 3600);
                 const m = Math.floor((seconds % 3600) / 60);
                 const s = Math.floor(seconds % 60);
                 if (h > 0) return `${h}:${m < 10 ? '0' : ''}${m}:${s < 10 ? '0' : ''}${s}`;
                 return `${m}:${s < 10 ? '0' : ''}${s}`;
             }
-            player.on('loadedmetadata', () => {
+
+            function showControls() {
+                overlay.classList.remove('opacity-0', 'pointer-events-none');
+                overlay.classList.add('opacity-100');
+                container.style.cursor = "default";
+                clearTimeout(controlsTimeout);
+                if (!video.paused) {
+                    controlsTimeout = setTimeout(() => {
+                        overlay.classList.remove('opacity-100');
+                        overlay.classList.add('opacity-0', 'pointer-events-none');
+                        container.style.cursor = "none";
+                        // Cacher le menu de vitesse si ouvert
+                        speedMenu.classList.add('hidden');
+                        speedMenu.classList.remove('flex');
+                    }, 3200);
+                }
+            }
+
+            function showFeedback(text) {
+                if (!feedbackEl) return;
+                feedbackEl.innerText = text;
+                feedbackEl.classList.remove('opacity-0', 'scale-90');
+                feedbackEl.classList.add('opacity-100', 'scale-100');
+                setTimeout(() => {
+                    feedbackEl.classList.remove('opacity-100', 'scale-100');
+                    feedbackEl.classList.add('opacity-0', 'scale-90');
+                }, 650);
+            }
+
+            // GESTION CLAVIER (Raccourcis)
+            document.addEventListener('keydown', (e) => {
+                // Ignore si on écrit dans un champ texte (au cas où)
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+
+                switch(e.key.toLowerCase()) {
+                    case ' ':
+                    case 'spacebar':
+                        e.preventDefault();
+                        playPauseBtn.click();
+                        break;
+                    case 'f':
+                        e.preventDefault();
+                        fullscreenBtn.click();
+                        break;
+                    case 'arrowright':
+                        e.preventDefault();
+                        forwardBtn.click();
+                        break;
+                    case 'arrowleft':
+                        e.preventDefault();
+                        rewindBtn.click();
+                        break;
+                    case 'arrowup':
+                        e.preventDefault();
+                        video.volume = Math.min(1, video.volume + 0.1);
+                        if (video.muted && video.volume > 0) muteBtn.click();
+                        showFeedback('Vol: ' + Math.round(video.volume * 100) + '%');
+                        showControls();
+                        break;
+                    case 'arrowdown':
+                        e.preventDefault();
+                        video.volume = Math.max(0, video.volume - 0.1);
+                        if (video.volume === 0) { video.muted = true; volOnIcon.classList.add('hidden'); volOffIcon.classList.remove('hidden'); }
+                        showFeedback('Vol: ' + Math.round(video.volume * 100) + '%');
+                        showControls();
+                        break;
+                }
+            });
+
+            // GESTION VITESSE
+            speedBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                speedMenu.classList.toggle('hidden');
+                speedMenu.classList.toggle('flex');
+            });
+
+            speedOpts.forEach(opt => {
+                opt.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const speed = parseFloat(opt.dataset.speed);
+                    video.playbackRate = speed;
+                    speedBtn.innerText = speed + 'x';
+                    speedMenu.classList.add('hidden');
+                    speedMenu.classList.remove('flex');
+                    
+                    speedOpts.forEach(o => { o.classList.remove('text-netflix'); o.classList.add('text-white'); });
+                    opt.classList.add('text-netflix');
+                    opt.classList.remove('text-white');
+                    showFeedback('Vitesse : ' + speed + 'x');
+                });
+            });
+
+            // Clic sur l'écran pour Play/Pause & Afficher contrôles
+            container.addEventListener('click', (e) => {
+                if (e.target === overlay || e.target === video) {
+                    // Fermer le menu vitesse si ouvert
+                    if (!speedMenu.classList.contains('hidden')) {
+                        speedMenu.classList.add('hidden'); speedMenu.classList.remove('flex');
+                        return;
+                    }
+                    if (overlay.classList.contains('opacity-0')) {
+                        showControls();
+                    } else {
+                        // Double fonctionnalité sur mobile: clic = Play/Pause
+                        if (video.paused) video.play(); else video.pause();
+                        showControls();
+                    }
+                }
+            });
+
+            container.addEventListener('mousemove', () => {
+                if (window.matchMedia('(pointer: fine)').matches) showControls();
+            });
+
+            // Boutons d'actions principaux
+            playPauseBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (video.paused) video.play(); else video.pause();
+            });
+
+            rewindBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                video.currentTime = Math.max(0, video.currentTime - 10);
+                showFeedback('-10s'); showControls();
+            });
+
+            forwardBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                video.currentTime = Math.min(video.duration || Infinity, video.currentTime + 10);
+                showFeedback('+10s'); showControls();
+            });
+
+            // Progression
+            progressBar.addEventListener('input', (e) => {
+                e.stopPropagation();
+                if (video.duration) currentTimeEl.innerText = formatTime((progressBar.value / 100) * video.duration);
+                showControls();
+            });
+            progressBar.addEventListener('change', (e) => {
+                e.stopPropagation();
+                if (video.duration) video.currentTime = (progressBar.value / 100) * video.duration;
+            });
+
+            // Volume & Plein écran
+            muteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                video.muted = !video.muted;
+                volOnIcon.classList.toggle('hidden', video.muted);
+                volOffIcon.classList.toggle('hidden', !video.muted);
+                showControls();
+            });
+
+            fullscreenBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+                    if (container.requestFullscreen) container.requestFullscreen();
+                    else if (container.webkitRequestFullscreen) container.webkitRequestFullscreen();
+                } else {
+                    if (document.exitFullscreen) document.exitFullscreen();
+                    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+                }
+                showControls();
+            });
+
+            // Actualisation UI & Sauvegarde
+            video.addEventListener('loadedmetadata', () => {
+                durationEl.innerText = formatTime(video.duration);
                 const savedTime = localStorage.getItem(STORAGE_KEY);
                 if (savedTime && parseFloat(savedTime) > 5) {
                     const time = parseFloat(savedTime);
-                    player.currentTime = time;
+                    video.currentTime = time;
                     if (resumeToast) {
                         resumeToast.innerText = "Reprise à " + formatTime(time);
                         resumeToast.classList.remove('translate-x-[150%]');
@@ -114,65 +390,43 @@
                     }
                 }
             });
-            player.on('timeupdate', () => {
-                if (player.playing && player.currentTime > 0) {
-                    localStorage.setItem(STORAGE_KEY, player.currentTime);
+
+            let lastSavedTime = 0;
+            video.addEventListener('timeupdate', () => {
+                if (video.duration) {
+                    progressBar.value = (video.currentTime / video.duration) * 100;
+                    currentTimeEl.innerText = formatTime(video.currentTime);
+                }
+                const now = Date.now();
+                if (!video.paused && video.currentTime > 0 && (now - lastSavedTime > 5000)) {
+                    localStorage.setItem(STORAGE_KEY, video.currentTime);
+                    lastSavedTime = now;
                 }
             });
-            player.on('play', () => emitAction('play'));
-            player.on('pause', () => emitAction('pause'));
-            player.on('seeked', () => emitAction('seek'));
-            const wrapper = document.querySelector('.plyr');
-            if (wrapper) {
-                let lastClickTime = 0;
-                wrapper.addEventListener('click', (e) => {
-                    const currentTime = new Date().getTime();
-                    const timeDiff = currentTime - lastClickTime;
-                    if (timeDiff < 300 && timeDiff > 0) {
-                        e.preventDefault(); e.stopImmediatePropagation();
-                        const rect = wrapper.getBoundingClientRect();
-                        const x = e.clientX - rect.left;
-                        const width = rect.width;
-                        if (x < width * 0.35) {
-                            player.rewind(10);
-                            showFeedback('-10s');
-                        } else if (x > width * 0.65) {
-                            player.forward(10);
-                            showFeedback('+10s');
-                        }
-                        lastClickTime = 0;
-                    } else {
-                        lastClickTime = currentTime;
-                    }
-                }, true);
-            }
-            function showFeedback(text) {
-                if (!feedbackEl) return;
-                feedbackEl.classList.remove('opacity-100', 'scale-100');
-                feedbackEl.classList.add('opacity-0', 'scale-90');
-                void feedbackEl.offsetWidth;
-                feedbackEl.innerText = text;
-                feedbackEl.classList.remove('opacity-0', 'scale-90');
-                feedbackEl.classList.add('opacity-100', 'scale-100');
-                setTimeout(() => {
-                    feedbackEl.classList.remove('opacity-100', 'scale-100');
-                    feedbackEl.classList.add('opacity-0', 'scale-90');
-                }, 600);
-            }
+
+            video.addEventListener('play', () => {
+                playIcon.classList.add('hidden'); pauseIcon.classList.remove('hidden'); showControls();
+            });
+            video.addEventListener('pause', () => {
+                playIcon.classList.remove('hidden'); pauseIcon.classList.add('hidden'); showControls();
+            });
+
+            boostRamBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                window.location.reload(); // Simple reload pour libérer la RAM manuellement
+            });
+
         });
     </script>
     {% else %}
+    <!-- APERÇU -->
     <div class="flex flex-col md:flex-row gap-10 items-center mt-8 bg-white dark:bg-cardbg p-8 md:p-12 rounded-3xl border border-slate-200 dark:border-white/5 shadow-2xl transition-colors duration-300">
         <div class="w-[70%] md:w-1/4 rounded-2xl shadow-xl overflow-hidden border border-slate-200 dark:border-white/10 shrink-0">
             <img src="{{ movie.poster }}" class="w-full h-full object-cover aspect-[2/3]" />
         </div>
         <div class="flex-1 flex flex-col items-center md:items-start text-center md:text-left">
-            <span class="bg-slate-100 dark:bg-white/10 text-slate-600 dark:text-gray-300 px-4 py-1.5 rounded-full text-xs font-black tracking-widest mb-6 border border-slate-200 dark:border-white/10">APERÇU SEULEMENT</span>
             <h1 class="text-4xl md:text-6xl font-black mb-6 text-slate-900 dark:text-white">{{ movie.title }}</h1>
             <p class="text-slate-500 dark:text-gray-400 text-base md:text-lg leading-relaxed max-w-2xl mb-8">Ce film est présent dans le catalogue mais le fichier vidéo n'est pas encore disponible, en cours de téléchargement, ou a été retiré des serveurs.</p>
-            <a href="{{ movie.url }}" target="_blank" class="bg-[#f5c518] hover:bg-[#e2b616] text-black px-8 py-3.5 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all hover:scale-105 shadow-lg">
-                Voir la fiche IMDb complète
-            </a>
         </div>
     </div>
     {% endif %}
